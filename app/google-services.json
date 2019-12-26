@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "275325198036",
+    "firebase_url": "https://blogtest-e42ce.firebaseio.com",
+    "project_id": "blogtest-e42ce",
+    "storage_bucket": "blogtest-e42ce.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:275325198036:android:b199c7e6c51fe904",
+        "android_client_info": {
+          "package_name": "com.czterysery.ledcontroller"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "275325198036-ml5lt5cme966n4mdoj7hacbdjt4b8g1c.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.czterysery.ledcontroller",
+            "certificate_hash": "c25f30265eb5450def2668fbeac350f364083da1"
+          }
+        },
+        {
+          "client_id": "275325198036-knrlbtl3hafmjgfdi06k2hk2djtjjrjn.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAYVNGnSggT3r-0nbKlAD8vKuSsDTqXPKc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "275325198036-knrlbtl3hafmjgfdi06k2hk2djtjjrjn.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
