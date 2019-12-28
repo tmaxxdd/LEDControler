@@ -2,9 +2,8 @@ package com.czterysery.ledcontroller.data.bluetooth
 
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothDevice
-import android.util.Log
 import org.jetbrains.anko.AnkoLogger
-import org.jetbrains.anko.debug
+import java.util.*
 
 /**
  * Created by tmax0 on 27.11.2018.
