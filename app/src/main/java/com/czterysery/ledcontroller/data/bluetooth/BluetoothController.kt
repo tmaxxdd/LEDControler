@@ -2,33 +2,29 @@ package com.czterysery.ledcontroller.data.bluetooth
 
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothDevice
-import org.jetbrains.anko.AnkoLogger
 import java.util.*
 
-/**
- * Created by tmax0 on 27.11.2018.
- */
-class BluetoothController: AnkoLogger {
-    private val TAG = "BluetoothController"
+class BluetoothController {
 
-    fun isEnabled(): Boolean = BluetoothAdapter.getDefaultAdapter().isEnabled
+    val adapter: BluetoothAdapter?
+        get() = BluetoothAdapter.getDefaultAdapter()
 
-    fun getAdapter(): BluetoothAdapter = BluetoothAdapter.getDefaultAdapter()
+    val isEnabled: Boolean
+        get() = adapter?.isEnabled ?: false
 
     fun getDeviceAddress(name: String): String? {
-        isEnabled().let {
+        isEnabled.let {
             return getDevices()[name]
         }
     }
 
     fun getDevices(): HashMap<String, String> {
         val devices = HashMap<String, String>()
-        val pairedDevices: Set<BluetoothDevice> = BluetoothAdapter.getDefaultAdapter().bondedDevices
+        val pairedDevices: Set<BluetoothDevice> = adapter?.bondedDevices ?: emptySet()
         pairedDevices.forEach { device ->
-            devices.put(device.name, device.address)
+            devices[device.name] = device.address
         }
 
         return devices
     }
-
 }

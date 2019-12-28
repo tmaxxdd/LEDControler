@@ -25,7 +25,7 @@ class SocketManagerImpl : SocketManager {
     private val bluetoothController = BluetoothController()
 
     override fun connect(address: String): Boolean {
-        myBluetooth = bluetoothController.getAdapter()
+        myBluetooth = bluetoothController.adapter
         val device = myBluetooth?.getRemoteDevice(address)
         ConnectThread(myBluetooth!!, device!!).run()
         return connectionSuccess
@@ -80,7 +80,7 @@ class SocketManagerImpl : SocketManager {
 
     override fun isSocketConnected(): Boolean = connectionSuccess
 
-    override fun isBluetoothEnabled(): Boolean = bluetoothController.isEnabled()
+    override fun isBluetoothEnabled(): Boolean = bluetoothController.isEnabled
 
     override fun getDeviceAddress(name: String): String? = bluetoothController.getDeviceAddress(name)
 
