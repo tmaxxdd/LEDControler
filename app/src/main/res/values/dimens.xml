@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Base -->
+    <dimen name="spacing_16">16dp</dimen>
+    <dimen name="spacing_8">8dp</dimen>
+
+    <!-- Layout -->
+    <dimen name="vertical_spacing">@dimen/spacing_16</dimen>
+</resources>

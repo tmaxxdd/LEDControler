@@ -2,7 +2,7 @@ package com.czterysery.ledcontroller.view
 
 import android.graphics.Color
 import android.os.Bundle
-import android.support.v7.app.AppCompatActivity
+import androidx.appcompat.app.AppCompatActivity
 import android.view.View
 import android.widget.ArrayAdapter
 import com.czterysery.ledcontroller.R
@@ -27,9 +27,9 @@ class MainActivity : AppCompatActivity(), MainView,
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        color_picker.subscribe(this)
-        color_picker.setInitialColor(Color.WHITE)
-        color_picker.reset()
+        colorPicker.subscribe(this)
+        colorPicker.setInitialColor(Color.WHITE)
+        colorPicker.reset()
         phone_state.setOnCheckedChangeListener(this)
         brightness_slider.setOnPositionChangeListener(this)
         connection_button.setOnClickListener(this)
@@ -86,7 +86,7 @@ class MainActivity : AppCompatActivity(), MainView,
     }
 
     override fun setColorPickerColor(color: Int) {
-        color_picker.setInitialColor(color)
+        colorPicker.setInitialColor(color)
     }
 
     override fun setBrightnessValue(value: Int) {

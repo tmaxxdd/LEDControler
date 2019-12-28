@@ -4,7 +4,7 @@ import android.app.AlertDialog
 import android.content.Context
 import android.os.Build
 import android.os.Handler
-import android.support.v7.view.ContextThemeWrapper
+import androidx.appcompat.view.ContextThemeWrapper
 import android.util.Log
 import com.czterysery.ledcontroller.Constants
 import com.czterysery.ledcontroller.Messages
