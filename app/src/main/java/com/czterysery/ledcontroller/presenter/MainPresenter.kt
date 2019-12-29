@@ -2,9 +2,7 @@ package com.czterysery.ledcontroller.presenter
 
 import android.content.Context
 
-/**
- * Created by tmax0 on 27.11.2018.
- */
+
 interface MainPresenter: BasePresenter {
 
     fun connectToBluetooth(context: Context)

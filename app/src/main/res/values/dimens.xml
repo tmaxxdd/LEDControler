@@ -6,4 +6,8 @@
 
     <!-- Layout -->
     <dimen name="vertical_spacing">@dimen/spacing_16</dimen>
+
+    <!-- View -->
+    <dimen name="dropdown_row_height">32dp</dimen>
+    <dimen name="dropdown_height">48dp</dimen>
 </resources>

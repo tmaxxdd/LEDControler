@@ -1,1 +1,21 @@
-<resources></resources>
+<resources xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <style name="CustomDropdown" parent="Material.Drawable.Ripple.Wave">
+        <item name="rd_rippleColor">@color/colorAccent</item>
+        <item name="rd_rippleAnimDuration">300</item>
+        <item name="rd_maskType">rectangle</item>
+        <item name="rd_cornerRadius">2dp</item>
+        <item name="rd_delayClick">afterRelease</item>
+    </style>
+
+    <style name="CustomSlider" parent="Material.Widget.Slider.Discrete">
+        <item name="sl_minValue">@integer/brightness_min</item>
+        <item name="sl_maxValue">@integer/brightness_max</item>
+        <item name="sl_stepValue">@integer/brightness_step</item>
+        <item name="sl_alwaysFillThumb">true</item>
+        <item name="sl_discreteMode">true</item>
+        <item name="sl_secondaryColor">@android:color/black</item>
+        <item name="sl_textColor">@android:color/black</item>
+    </style>
+
+</resources>
