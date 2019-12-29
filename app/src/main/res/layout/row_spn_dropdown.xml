@@ -5,8 +5,6 @@
     android:layout_width="match_parent"
     android:layout_height="@dimen/dropdown_height"
     android:background="@color/colorPrimary"
-    android:gravity="center_vertical"
-    android:paddingStart="@dimen/vertical_spacing"
+    android:gravity="center"
     android:textDirection="locale"
-    app:v_styleId="@style/CustomDropdown"
-    android:paddingLeft="@dimen/vertical_spacing" />
+    app:rd_style="@style/Material.Drawable.Ripple.Wave" />

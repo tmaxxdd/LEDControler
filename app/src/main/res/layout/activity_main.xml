@@ -8,7 +8,8 @@
     <androidx.appcompat.widget.Toolbar
         android:id="@+id/toolbar"
         android:layout_width="match_parent"
-        android:layout_height="?attr/actionBarSize">
+        android:layout_height="?attr/actionBarSize"
+        android:background="?android:attr/colorForegroundInverse">
 
         <TextView
             android:layout_width="match_parent"
@@ -53,10 +54,12 @@
 
             <com.rey.material.widget.Spinner
                 android:id="@+id/animationDropdown"
-                style="@style/Material.Widget.Spinner"
+                style="@style/CustomDropdown"
                 android:layout_width="match_parent"
                 android:layout_height="@dimen/dropdown_height"
+                android:layout_marginStart="@dimen/spacing_8"
                 android:layout_marginTop="@dimen/spacing_8"
+                android:layout_marginEnd="@dimen/spacing_8"
                 app:layout_constraintTop_toBottomOf="@id/animationLabel" />
 
             <TextView

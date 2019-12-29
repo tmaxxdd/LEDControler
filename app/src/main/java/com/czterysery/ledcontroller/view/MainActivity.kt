@@ -2,25 +2,31 @@ package com.czterysery.ledcontroller.view
 
 import android.graphics.Color
 import android.os.Bundle
+import android.view.ViewGroup
 import android.widget.ArrayAdapter
+import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import com.czterysery.ledcontroller.R
 import com.czterysery.ledcontroller.data.socket.SocketManagerImpl
 import com.czterysery.ledcontroller.presenter.MainPresenter
 import com.czterysery.ledcontroller.presenter.MainPresenterImpl
 import kotlinx.android.synthetic.main.activity_main.*
+import kotlinx.android.synthetic.main.row_spn.*
+import org.jetbrains.anko.textColor
 import org.jetbrains.anko.toast
 import top.defaults.colorpicker.ColorObserver
 
 
 class MainActivity : AppCompatActivity(), MainView, ColorObserver {
 
+    val layoutId = R.layout.activity_main
+
     private val mPresenter: MainPresenter = MainPresenterImpl(SocketManagerImpl())
     private var connected = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_main)
+        setContentView(layoutId)
 
         initColorPicker()
         initAnimSpinner()
@@ -70,6 +76,7 @@ class MainActivity : AppCompatActivity(), MainView, ColorObserver {
     }
 
     override fun updateCurrentColor(receivedColor: Int) {
+        row_spn_tv?.textColor = receivedColor
         brightnessSlider.setPrimaryColor(receivedColor)
         connectionButton.setTextColor(receivedColor)
     }
@@ -84,7 +91,7 @@ class MainActivity : AppCompatActivity(), MainView, ColorObserver {
 
     private fun initColorPicker() {
         colorPicker.subscribe(this)
-        colorPicker.setInitialColor(Color.WHITE)
+        colorPicker.setInitialColor(Color.GRAY)
         colorPicker.reset()
     }
 
