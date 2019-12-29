@@ -2,9 +2,7 @@ package com.czterysery.ledcontroller.view
 
 import android.graphics.Color
 import android.os.Bundle
-import android.view.ViewGroup
 import android.widget.ArrayAdapter
-import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import com.czterysery.ledcontroller.R
 import com.czterysery.ledcontroller.data.socket.SocketManagerImpl
@@ -18,15 +16,14 @@ import top.defaults.colorpicker.ColorObserver
 
 
 class MainActivity : AppCompatActivity(), MainView, ColorObserver {
-
-    val layoutId = R.layout.activity_main
-
     private val mPresenter: MainPresenter = MainPresenterImpl(SocketManagerImpl())
     private var connected = false
 
+
+    //TODO Set text apperance, style the button, add visibility states
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(layoutId)
+        setContentView(R.layout.activity_main)
 
         initColorPicker()
         initAnimSpinner()
