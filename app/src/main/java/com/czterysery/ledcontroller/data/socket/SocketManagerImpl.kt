@@ -22,6 +22,7 @@ class SocketManagerImpl : SocketManager {
         private var myBluetooth: BluetoothAdapter? = null
     }
 
+    // TODO Remove constraint between BluetoothController and SocketManagerImpl
     private val bluetoothController = BluetoothController()
 
     override fun connect(address: String): Boolean {
@@ -109,10 +110,10 @@ class SocketManagerImpl : SocketManager {
                     cancel()
                 }
                 if (socket.isConnected) {
-                    Log.d(TAG,"Connected to the ${device.name}")
+                    Log.d(TAG, "Connected to the ${device.name}")
                     connectionSuccess = true
                 } else {
-                    Log.d(TAG,"Connection Failed. Is it a SPP Bluetooth? Try again.")
+                    Log.d(TAG, "Connection Failed. Is it a SPP Bluetooth? Try again.")
                     cancel()
                 }
 

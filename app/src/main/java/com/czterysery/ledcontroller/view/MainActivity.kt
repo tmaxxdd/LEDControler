@@ -1,10 +1,18 @@
 package com.czterysery.ledcontroller.view
 
+import android.bluetooth.BluetoothAdapter
+import android.content.BroadcastReceiver
+import android.content.IntentFilter
 import android.graphics.Color
 import android.os.Bundle
 import android.widget.ArrayAdapter
 import androidx.appcompat.app.AppCompatActivity
 import com.czterysery.ledcontroller.R
+import com.czterysery.ledcontroller.data.bluetooth.BluetoothController
+import com.czterysery.ledcontroller.data.model.BluetoothState
+import com.czterysery.ledcontroller.data.model.Disabled
+import com.czterysery.ledcontroller.data.model.Enabled
+import com.czterysery.ledcontroller.data.model.NotSupported
 import com.czterysery.ledcontroller.data.socket.SocketManagerImpl
 import com.czterysery.ledcontroller.presenter.MainPresenter
 import com.czterysery.ledcontroller.presenter.MainPresenterImpl
@@ -16,9 +24,19 @@ import top.defaults.colorpicker.ColorObserver
 
 
 class MainActivity : AppCompatActivity(), MainView, ColorObserver {
-    private val mPresenter: MainPresenter = MainPresenterImpl(SocketManagerImpl())
+    private val mPresenter: MainPresenter = MainPresenterImpl(BluetoothController(), SocketManagerImpl())
     private var connected = false
 
+    private val bluetoothStateListener = { state: BluetoothState ->
+        when (state) {
+            Enabled -> showMessage("Enabled")
+            Disabled -> showMessage("Disabled")
+            NotSupported -> showMessage("Not supported")
+        }
+    }
+
+    private val btStateReceiver: BroadcastReceiver
+        get() = mPresenter.setBluetoothStateListener(bluetoothStateListener)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -40,6 +58,11 @@ class MainActivity : AppCompatActivity(), MainView, ColorObserver {
         }
     }
 
+    override fun onStart() {
+        super.onStart()
+        registerReceiver(btStateReceiver, IntentFilter(BluetoothAdapter.ACTION_STATE_CHANGED))
+    }
+
     override fun onResume() {
         super.onResume()
         mPresenter.onAttach(this)
@@ -49,6 +72,11 @@ class MainActivity : AppCompatActivity(), MainView, ColorObserver {
         mPresenter.disconnect()
         mPresenter.onDetach()
         super.onPause()
+    }
+
+    override fun onStop() {
+        super.onStop()
+        unregisterReceiver(btStateReceiver)
     }
 
     override fun onDestroy() {
@@ -77,9 +105,12 @@ class MainActivity : AppCompatActivity(), MainView, ColorObserver {
         connectionButton.setTextColor(receivedColor)
     }
 
+    // TODO Change name to updateCurrentBrightness
     override fun updateColorBrightnessValue(receivedBrightness: Int) {
         brightnessSlider.setValue(receivedBrightness.toFloat(), true)
     }
+
+    // TODO Add updateCurrentAnimation
 
     override fun showMessage(text: String) {
         toast(text)
