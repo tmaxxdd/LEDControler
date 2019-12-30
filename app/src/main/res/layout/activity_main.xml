@@ -17,7 +17,10 @@
             android:layout_marginEnd="@dimen/vertical_spacing"
             android:layout_marginRight="@dimen/vertical_spacing"
             android:text="@string/app_name"
-            android:textAlignment="center" />
+            android:textAlignment="center"
+            android:textSize="@dimen/toolbar_font_size"
+            android:textStyle="bold"
+            app:fontFamily="serif-monospace" />
 
     </androidx.appcompat.widget.Toolbar>
 
@@ -28,27 +31,31 @@
         <androidx.constraintlayout.widget.ConstraintLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_margin="@dimen/vertical_spacing">
+            android:layout_marginStart="@dimen/spacing_16"
+            android:layout_marginTop="0dp"
+            android:layout_marginEnd="@dimen/spacing_16">
 
             <top.defaults.colorpicker.ColorPickerView
                 android:id="@+id/colorPicker"
                 android:layout_width="0dp"
                 android:layout_height="0dp"
-                android:scaleX="0.9"
-                android:scaleY="0.9"
                 app:enableAlpha="false"
                 app:enableBrightness="false"
                 app:layout_constraintDimensionRatio="1:1"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toTopOf="parent" />
+                app:layout_constraintTop_toTopOf="parent"
+                app:layout_constraintWidth_percent="0.9" />
 
             <TextView
                 android:id="@+id/animationLabel"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="@dimen/spacing_8"
+                android:layout_marginEnd="@dimen/spacing_8"
+                android:layout_marginRight="@dimen/spacing_8"
                 android:text="@string/animation_title"
+                app:fontFamily="sans-serif-condensed"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintTop_toBottomOf="@+id/colorPicker" />
 
@@ -67,7 +74,10 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="@dimen/spacing_16"
+                android:layout_marginEnd="@dimen/spacing_8"
+                android:layout_marginRight="@dimen/spacing_8"
                 android:text="@string/brightness_title"
+                app:fontFamily="sans-serif-condensed"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintTop_toBottomOf="@+id/animationDropdown" />
 
@@ -87,7 +97,12 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="@dimen/spacing_16"
+                android:layout_marginBottom="@dimen/spacing_16"
+                android:padding="@dimen/spacing_16"
                 android:text="@string/not_connected"
+                app:backgroundTint="?android:attr/textColorPrimaryInverse"
+                app:fontFamily="monospace"
+                app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintTop_toBottomOf="@id/brightnessSlider" />

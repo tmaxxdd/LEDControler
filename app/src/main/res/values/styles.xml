@@ -16,5 +16,4 @@
         <item name="spn_arrowSwitchMode">true</item>
         <item name="spn_dividerColor">?android:attr/textColorPrimary</item>
     </style>
-
 </resources>
