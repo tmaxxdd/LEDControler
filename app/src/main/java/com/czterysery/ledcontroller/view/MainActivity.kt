@@ -34,7 +34,7 @@ class MainActivity : AppCompatActivity(), MainView, ColorObserver {
 
         connectionButton.setOnClickListener {
             if (!connected) {
-                mPresenter.connectToBluetooth(this) //Very important to get it works
+                mPresenter.connectToBluetooth(this)
             } else {
                 mPresenter.disconnect()
             }
