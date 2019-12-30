@@ -1,10 +1,9 @@
 <resources>
     <string name="app_name">LEDController</string>
-    <string name="select_color">Select the current color</string>
-    <string name="only_phone">Only phone mode</string>
-    <string name="set_brightness">Set brightness</string>
+    <string name="brightness_title">Brightness</string>
     <string name="not_connected">Not connected</string>
     <string name="disconnect">Disconnect</string>
+    <string name="animation_title">Animation</string>
     <string-array name="animations">
         <item>None</item>
         <item>Pulse</item>

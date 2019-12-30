@@ -1,12 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <com.rey.material.widget.TextView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    android:id="@+id/row_spn_tv"
+    android:id="@+id/dropdownItem"
     android:layout_width="match_parent"
-    android:layout_height="48dp"
-    android:gravity="center_vertical"
-    android:paddingLeft="16dp"
-    android:paddingRight="16dp"
+    android:layout_height="@dimen/dropdown_height"
+    android:gravity="center"
     android:textDirection="locale"
-    android:background="@color/colorPrimary"
-    app:v_styleId="@style/DarkSpinnerItem"/>
+    app:rd_style="@style/Material.Drawable.Ripple.Wave" />

@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <integer name="brightness_max">255</integer>
+    <integer name="brightness_min">0</integer>
+    <integer name="brightness_step">1</integer>
+</resources>

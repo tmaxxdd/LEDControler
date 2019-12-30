@@ -2,16 +2,10 @@ package com.czterysery.ledcontroller.presenter
 
 import android.app.AlertDialog
 import android.content.Context
-import android.os.Build
 import android.os.Handler
-import android.support.v7.view.ContextThemeWrapper
-import android.util.Log
-import com.czterysery.ledcontroller.Constants
 import com.czterysery.ledcontroller.Messages
-import com.czterysery.ledcontroller.R
 import com.czterysery.ledcontroller.data.socket.SocketManager
 import com.czterysery.ledcontroller.view.MainView
-import kotlinx.coroutines.delay
 
 class MainPresenterImpl(private val socketManager: SocketManager) : MainPresenter {
     private val TAG = "MainPresenterImpl"
@@ -48,7 +42,7 @@ class MainPresenterImpl(private val socketManager: SocketManager) : MainPresente
             if (socketManager.isSocketConnected()) {
                 socketManager.writeMessage(Messages.DISCONNECTED + "\r\n")
                 if (socketManager.disconnect()) {
-                    view?.setConnectionState(false)
+                    view?.updateConnectionState(false)
                     view?.showMessage("Disconnected from device.")
                 } else {
                     view?.showMessage("Error during disconnecting from socket.")
@@ -103,7 +97,7 @@ class MainPresenterImpl(private val socketManager: SocketManager) : MainPresente
     }
 
     override fun getColor() {
-        //view?.setColorPickerColor(color)
+        //view?.updateCurrentColor(color)
     }
 
     override fun getBrightness() {
@@ -111,7 +105,7 @@ class MainPresenterImpl(private val socketManager: SocketManager) : MainPresente
     }
 
     override fun isConnected() {
-        //view?.setConnectionState()
+        //view?.updateConnectionState()
     }
 
     override fun isOnlyPhoneMode() {
@@ -141,24 +135,21 @@ class MainPresenterImpl(private val socketManager: SocketManager) : MainPresente
     private fun onConnected() {
         view?.let {
             it.showMessage("Connected!")
-            it.setConnectionState(true)
+            it.updateConnectionState(true)
         }
         socketManager.writeMessage(Messages.CONNECTED + "\r\n")
     }
 
     private fun selectDevice(context: Context) {
-        val btDialog = AlertDialog.Builder(ContextThemeWrapper(context, R.style.AlertDialogCustom))
+        val btDialog = AlertDialog.Builder(context)
         val devices = socketManager.getBluetoothDevices()
         val titles = devices.keys.toTypedArray() //Get names
         btDialog.setTitle("Available devices")
-        btDialog.setItems(titles) { dialog, which ->
+        btDialog.setItems(titles) { _, which ->
             //On Click
             //Return bluetooth's address for selected device
             val selectedDevice = devices[titles[which]]!!
             tryConnect(selectedDevice)
-            if (titles[which] == Constants.ESP32NAME) {
-                view?.showOnlyPhoneStateSwitch(true)
-            }
         }
         btDialog.show()
     }
