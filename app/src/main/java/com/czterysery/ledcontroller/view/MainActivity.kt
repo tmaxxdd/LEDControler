@@ -73,7 +73,7 @@ class MainActivity : AppCompatActivity(), MainView, ColorObserver {
     }
 
     override fun updateCurrentColor(receivedColor: Int) {
-        row_spn_tv?.textColor = receivedColor
+        dropdownItem?.textColor = receivedColor
         brightnessSlider.setPrimaryColor(receivedColor)
         connectionButton.setTextColor(receivedColor)
     }
