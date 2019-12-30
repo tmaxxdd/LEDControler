@@ -32,20 +32,20 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginStart="@dimen/spacing_16"
-            android:layout_marginEnd="@dimen/spacing_16"
-            android:layout_marginTop="0dp">
+            android:layout_marginTop="0dp"
+            android:layout_marginEnd="@dimen/spacing_16">
 
             <top.defaults.colorpicker.ColorPickerView
                 android:id="@+id/colorPicker"
                 android:layout_width="0dp"
                 android:layout_height="0dp"
-                app:layout_constraintWidth_percent="0.9"
                 app:enableAlpha="false"
                 app:enableBrightness="false"
                 app:layout_constraintDimensionRatio="1:1"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toTopOf="parent" />
+                app:layout_constraintTop_toTopOf="parent"
+                app:layout_constraintWidth_percent="0.9" />
 
             <TextView
                 android:id="@+id/animationLabel"
@@ -92,21 +92,20 @@
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintTop_toBottomOf="@id/brightnessLabel" />
 
-            <com.rey.material.widget.Button
+            <Button
                 android:id="@+id/connectionButton"
+                style="@style/Widget.AppCompat.Button.Colored"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="@dimen/spacing_16"
                 android:layout_marginBottom="@dimen/spacing_16"
-                android:background="?android:attr/colorForegroundInverse"
-                android:padding="@dimen/spacing_16"
                 android:text="@string/not_connected"
+                android:theme="@style/CustomButton"
                 app:fontFamily="monospace"
                 app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toBottomOf="@id/brightnessSlider"
-                app:rd_style="@style/Material.Drawable.Ripple.Touch.MatchView" />
+                app:layout_constraintTop_toBottomOf="@id/brightnessSlider" />
 
         </androidx.constraintlayout.widget.ConstraintLayout>
 
