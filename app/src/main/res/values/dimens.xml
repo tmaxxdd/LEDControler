@@ -10,4 +10,5 @@
     <!-- View -->
     <dimen name="dropdown_row_height">48dp</dimen>
     <dimen name="dropdown_height">48dp</dimen>
+    <dimen name="toolbar_font_size">18sp</dimen>
 </resources>

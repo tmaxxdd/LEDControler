@@ -20,7 +20,6 @@ class MainActivity : AppCompatActivity(), MainView, ColorObserver {
     private var connected = false
 
 
-    //TODO Set text apperance, style the button, add visibility states
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
