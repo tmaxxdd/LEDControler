@@ -4,17 +4,24 @@ import android.app.AlertDialog
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.os.Handler
+import android.util.Log
+import com.czterysery.ledcontroller.BluetoothStateBroadcastReceiver
 import com.czterysery.ledcontroller.Messages
 import com.czterysery.ledcontroller.data.bluetooth.BluetoothController
 import com.czterysery.ledcontroller.data.model.BluetoothState
 import com.czterysery.ledcontroller.data.socket.SocketManager
 import com.czterysery.ledcontroller.view.MainView
+import io.reactivex.rxjava3.disposables.Disposable
 
 class MainPresenterImpl(
-        private val bluetoothController: BluetoothController,
-        private val socketManager: SocketManager
+    private val bluetoothStateBroadcastReceiver: BluetoothStateBroadcastReceiver,
+    private val bluetoothController: BluetoothController,
+    private val socketManager: SocketManager
 ) : MainPresenter {
-    private val TAG = "MainPresenterImpl"
+    private val TAG = "MainPresenter"
+
+    private var btStateDisposable: Disposable? = null
+
     private var colorChangeCounter = 3
     private var view: MainView? = null
 
@@ -30,8 +37,14 @@ class MainPresenterImpl(
         this.view = null
     }
 
-    override fun setBluetoothStateListener(listener: (state: BluetoothState) -> Unit): BroadcastReceiver =
-            bluetoothController.setBluetoothStateListener(listener)
+    override fun setBluetoothStateListener(listener: (state: BluetoothState) -> Unit) {
+        btStateDisposable?.dispose()
+        btStateDisposable = bluetoothStateBroadcastReceiver.btState
+            .subscribe(
+                { state -> listener.invoke(state) },
+                { error -> Log.e(TAG,"Error during observing BT state: $error")}
+            )
+    }
 
     /* Control the LED settings */
 
@@ -92,7 +105,6 @@ class MainPresenterImpl(
                     socketManager.writeMessage(Messages.SET_ANIMATION + anim.toUpperCase() + "\r\n")
                     //Log.d(TAG, "From reading message = ${socketManager.readMessage()}")
                 }, 100)
-
             }
         }
     }
@@ -118,7 +130,6 @@ class MainPresenterImpl(
     }
 
     override fun isOnlyPhoneMode() {
-
     }
 
     private fun isFullyConnected(): Boolean {
@@ -162,6 +173,4 @@ class MainPresenterImpl(
         }
         btDialog.show()
     }
-
-
 }

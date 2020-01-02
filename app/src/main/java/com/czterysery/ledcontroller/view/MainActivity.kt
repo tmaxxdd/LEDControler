@@ -1,8 +1,6 @@
 package com.czterysery.ledcontroller.view
 
-import android.bluetooth.BluetoothAdapter
 import android.content.BroadcastReceiver
-import android.content.IntentFilter
 import android.graphics.Color
 import android.os.Bundle
 import android.widget.ArrayAdapter
@@ -16,12 +14,14 @@ import com.czterysery.ledcontroller.data.model.NotSupported
 import com.czterysery.ledcontroller.data.socket.SocketManagerImpl
 import com.czterysery.ledcontroller.presenter.MainPresenter
 import com.czterysery.ledcontroller.presenter.MainPresenterImpl
-import kotlinx.android.synthetic.main.activity_main.*
-import kotlinx.android.synthetic.main.row_spn.*
+import kotlinx.android.synthetic.main.activity_main.animationDropdown
+import kotlinx.android.synthetic.main.activity_main.brightnessSlider
+import kotlinx.android.synthetic.main.activity_main.colorPicker
+import kotlinx.android.synthetic.main.activity_main.connectionButton
+import kotlinx.android.synthetic.main.row_spn.dropdownItem
 import org.jetbrains.anko.textColor
 import org.jetbrains.anko.toast
 import top.defaults.colorpicker.ColorObserver
-
 
 class MainActivity : AppCompatActivity(), MainView, ColorObserver {
     private val mPresenter: MainPresenter = MainPresenterImpl(BluetoothController(), SocketManagerImpl())
@@ -34,9 +34,6 @@ class MainActivity : AppCompatActivity(), MainView, ColorObserver {
             NotSupported -> showMessage("Not supported")
         }
     }
-
-    private val btStateReceiver: BroadcastReceiver
-        get() = mPresenter.setBluetoothStateListener(bluetoothStateListener)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -56,11 +53,8 @@ class MainActivity : AppCompatActivity(), MainView, ColorObserver {
                 mPresenter.disconnect()
             }
         }
-    }
 
-    override fun onStart() {
-        super.onStart()
-        registerReceiver(btStateReceiver, IntentFilter(BluetoothAdapter.ACTION_STATE_CHANGED))
+        mPresenter.setBluetoothStateListener(bluetoothStateListener)
     }
 
     override fun onResume() {
@@ -72,11 +66,6 @@ class MainActivity : AppCompatActivity(), MainView, ColorObserver {
         mPresenter.disconnect()
         mPresenter.onDetach()
         super.onPause()
-    }
-
-    override fun onStop() {
-        super.onStop()
-        unregisterReceiver(btStateReceiver)
     }
 
     override fun onDestroy() {

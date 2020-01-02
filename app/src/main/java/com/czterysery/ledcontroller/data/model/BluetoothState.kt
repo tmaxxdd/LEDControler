@@ -4,3 +4,4 @@ sealed class BluetoothState
 object Enabled : BluetoothState()
 object Disabled : BluetoothState()
 object NotSupported : BluetoothState()
+object None : BluetoothState()

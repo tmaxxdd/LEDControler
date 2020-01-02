@@ -11,7 +11,6 @@ import com.czterysery.ledcontroller.data.model.Disabled
 import com.czterysery.ledcontroller.data.model.Enabled
 import com.czterysery.ledcontroller.data.model.NotSupported
 
-
 class BluetoothController {
 
     private var bluetoothStateListener: ((state: BluetoothState) -> Unit)? = null
@@ -23,30 +22,6 @@ class BluetoothController {
 
     val isEnabled: Boolean
         get() = adapter?.isEnabled ?: false
-
-    private val mReceiver = object : BroadcastReceiver() {
-        override fun onReceive(context: Context, intent: Intent) {
-            val action = intent.action
-
-            if (action == BluetoothAdapter.ACTION_STATE_CHANGED) {
-                val state = intent.getIntExtra(
-                        BluetoothAdapter.EXTRA_STATE,
-                        BluetoothAdapter.ERROR
-                )
-                when (state) {
-                    BluetoothAdapter.STATE_ON -> bluetoothStateListener?.invoke(Enabled)
-                    BluetoothAdapter.STATE_OFF -> bluetoothStateListener?.invoke(Disabled)
-                    BluetoothAdapter.ERROR -> bluetoothStateListener?.invoke(NotSupported)
-                }
-            }
-        }
-    }
-
-    fun setBluetoothStateListener(listener: (state: BluetoothState) -> Unit): BroadcastReceiver {
-        if (!isSupported) listener.invoke(NotSupported)
-        bluetoothStateListener = listener
-        return mReceiver
-    }
 
     fun getDeviceAddress(name: String): String? {
         isEnabled.let {

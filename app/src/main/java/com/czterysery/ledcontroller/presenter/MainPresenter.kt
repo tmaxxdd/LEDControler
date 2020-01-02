@@ -7,7 +7,7 @@ import com.czterysery.ledcontroller.data.model.BluetoothState
 
 interface MainPresenter: BasePresenter {
 
-    fun setBluetoothStateListener(listener: (state: BluetoothState) -> Unit): BroadcastReceiver
+    fun setBluetoothStateListener(listener: (state: BluetoothState) -> Unit)
 
     fun connectToBluetooth(context: Context)
 
