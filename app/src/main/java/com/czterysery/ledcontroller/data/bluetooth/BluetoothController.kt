@@ -13,12 +13,10 @@ import com.czterysery.ledcontroller.data.model.NotSupported
 
 class BluetoothController {
 
-    private var bluetoothStateListener: ((state: BluetoothState) -> Unit)? = null
-
     val adapter: BluetoothAdapter?
         get() = BluetoothAdapter.getDefaultAdapter()
 
-    private val isSupported = adapter != null
+    val isSupported = adapter != null
 
     val isEnabled: Boolean
         get() = adapter?.isEnabled ?: false

@@ -1,15 +1,17 @@
 package com.czterysery.ledcontroller.view
 
-import android.content.BroadcastReceiver
 import android.graphics.Color
 import android.os.Bundle
+import android.util.Log
 import android.widget.ArrayAdapter
 import androidx.appcompat.app.AppCompatActivity
+import com.czterysery.ledcontroller.BluetoothStateBroadcastReceiver
 import com.czterysery.ledcontroller.R
 import com.czterysery.ledcontroller.data.bluetooth.BluetoothController
 import com.czterysery.ledcontroller.data.model.BluetoothState
 import com.czterysery.ledcontroller.data.model.Disabled
 import com.czterysery.ledcontroller.data.model.Enabled
+import com.czterysery.ledcontroller.data.model.None
 import com.czterysery.ledcontroller.data.model.NotSupported
 import com.czterysery.ledcontroller.data.socket.SocketManagerImpl
 import com.czterysery.ledcontroller.presenter.MainPresenter
@@ -24,14 +26,23 @@ import org.jetbrains.anko.toast
 import top.defaults.colorpicker.ColorObserver
 
 class MainActivity : AppCompatActivity(), MainView, ColorObserver {
-    private val mPresenter: MainPresenter = MainPresenterImpl(BluetoothController(), SocketManagerImpl())
+    private val TAG = "BTSTATE"
+    private val mPresenter: MainPresenter = MainPresenterImpl(
+        BluetoothStateBroadcastReceiver(),
+        BluetoothController(),
+        SocketManagerImpl()
+    )
+
+    // TODO Consider one place for informing about connection state
     private var connected = false
 
-    private val bluetoothStateListener = { state: BluetoothState ->
+    // TODO Is notified only once -> None
+    private val bluetoothStateListener: (state: BluetoothState) -> Unit = { state: BluetoothState ->
         when (state) {
-            Enabled -> showMessage("Enabled")
-            Disabled -> showMessage("Disabled")
-            NotSupported -> showMessage("Not supported")
+            Enabled -> Log.d(TAG, "Enabled")
+            Disabled -> Log.d(TAG, "Disabled")
+            NotSupported -> Log.d(TAG, "Not supported")
+            None -> Log.d(TAG, "None")
         }
     }
 

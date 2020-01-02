@@ -9,6 +9,7 @@ import com.czterysery.ledcontroller.BluetoothStateBroadcastReceiver
 import com.czterysery.ledcontroller.Messages
 import com.czterysery.ledcontroller.data.bluetooth.BluetoothController
 import com.czterysery.ledcontroller.data.model.BluetoothState
+import com.czterysery.ledcontroller.data.model.NotSupported
 import com.czterysery.ledcontroller.data.socket.SocketManager
 import com.czterysery.ledcontroller.view.MainView
 import io.reactivex.rxjava3.disposables.Disposable
@@ -41,8 +42,13 @@ class MainPresenterImpl(
         btStateDisposable?.dispose()
         btStateDisposable = bluetoothStateBroadcastReceiver.btState
             .subscribe(
-                { state -> listener.invoke(state) },
-                { error -> Log.e(TAG,"Error during observing BT state: $error")}
+                { state ->
+                    if (bluetoothController.isSupported.not())
+                        listener.invoke(NotSupported)
+                    else
+                        listener.invoke(state)
+                },
+                { error -> Log.e(TAG, "Error during observing BT state: $error") }
             )
     }
 
