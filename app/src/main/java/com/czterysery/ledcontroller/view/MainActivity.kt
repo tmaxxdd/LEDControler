@@ -1,5 +1,7 @@
 package com.czterysery.ledcontroller.view
 
+import android.bluetooth.BluetoothAdapter
+import android.content.IntentFilter
 import android.graphics.Color
 import android.os.Bundle
 import android.util.Log
@@ -26,9 +28,10 @@ import org.jetbrains.anko.toast
 import top.defaults.colorpicker.ColorObserver
 
 class MainActivity : AppCompatActivity(), MainView, ColorObserver {
-    private val TAG = "BTSTATE"
+    private val TAG = "LEDController"
+    private val btStateReceiver = BluetoothStateBroadcastReceiver()
     private val mPresenter: MainPresenter = MainPresenterImpl(
-        BluetoothStateBroadcastReceiver(),
+        btStateReceiver,
         BluetoothController(),
         SocketManagerImpl()
     )
@@ -36,13 +39,12 @@ class MainActivity : AppCompatActivity(), MainView, ColorObserver {
     // TODO Consider one place for informing about connection state
     private var connected = false
 
-    // TODO Is notified only once -> None
     private val bluetoothStateListener: (state: BluetoothState) -> Unit = { state: BluetoothState ->
         when (state) {
             Enabled -> Log.d(TAG, "Enabled")
             Disabled -> Log.d(TAG, "Disabled")
             NotSupported -> Log.d(TAG, "Not supported")
-            None -> Log.d(TAG, "None")
+            None -> Log.d(TAG, "None") // TODO When none appers first try request once again
         }
     }
 
@@ -66,6 +68,7 @@ class MainActivity : AppCompatActivity(), MainView, ColorObserver {
         }
 
         mPresenter.setBluetoothStateListener(bluetoothStateListener)
+        registerReceiver(btStateReceiver, IntentFilter(BluetoothAdapter.ACTION_STATE_CHANGED))
     }
 
     override fun onResume() {
@@ -80,6 +83,7 @@ class MainActivity : AppCompatActivity(), MainView, ColorObserver {
     }
 
     override fun onDestroy() {
+        unregisterReceiver(btStateReceiver)
         colorPicker.unsubscribe(this)
         super.onDestroy()
     }
