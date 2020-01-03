@@ -1,9 +1,7 @@
 package com.czterysery.ledcontroller.presenter
 
-import android.content.BroadcastReceiver
 import android.content.Context
 import com.czterysery.ledcontroller.data.model.BluetoothState
-
 
 interface MainPresenter: BasePresenter {
 
@@ -30,5 +28,7 @@ interface MainPresenter: BasePresenter {
     fun isConnected()
 
     fun isOnlyPhoneMode()
+
+    fun isBtEnabled(): Boolean
 
 }

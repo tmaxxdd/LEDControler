@@ -1,7 +1,6 @@
 package com.czterysery.ledcontroller.presenter
 
 import android.app.AlertDialog
-import android.content.BroadcastReceiver
 import android.content.Context
 import android.os.Handler
 import android.util.Log
@@ -137,6 +136,8 @@ class MainPresenterImpl(
 
     override fun isOnlyPhoneMode() {
     }
+
+    override fun isBtEnabled(): Boolean = bluetoothController.isEnabled
 
     private fun isFullyConnected(): Boolean {
         if (socketManager.isBluetoothEnabled()) {

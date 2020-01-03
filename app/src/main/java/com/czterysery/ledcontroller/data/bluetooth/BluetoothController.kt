@@ -2,14 +2,7 @@ package com.czterysery.ledcontroller.data.bluetooth
 
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothDevice
-import java.util.*
-import android.content.Intent
-import android.content.BroadcastReceiver
-import android.content.Context
-import com.czterysery.ledcontroller.data.model.BluetoothState
-import com.czterysery.ledcontroller.data.model.Disabled
-import com.czterysery.ledcontroller.data.model.Enabled
-import com.czterysery.ledcontroller.data.model.NotSupported
+import java.util.HashMap
 
 class BluetoothController {
 

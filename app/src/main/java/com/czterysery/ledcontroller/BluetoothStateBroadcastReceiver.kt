@@ -17,16 +17,12 @@ class BluetoothStateBroadcastReceiver : BroadcastReceiver() {
 
     override fun onReceive(context: Context?, intent: Intent?) {
         if (intent != null) {
-            (intent.action == BluetoothAdapter.ACTION_STATE_CHANGED).let {
-                val state = intent.getIntExtra(
-                    BluetoothAdapter.EXTRA_STATE,
-                    BluetoothAdapter.ERROR
-                )
-                when (state) {
-                    BluetoothAdapter.STATE_ON -> btState.onNext(Enabled)
-                    BluetoothAdapter.STATE_OFF -> btState.onNext(Disabled)
-                    BluetoothAdapter.ERROR -> btState.onNext(NotSupported)
-                }
+            if (intent.action != BluetoothAdapter.ACTION_STATE_CHANGED) return
+
+            when (intent.getIntExtra(BluetoothAdapter.EXTRA_STATE, BluetoothAdapter.ERROR)) {
+                BluetoothAdapter.STATE_ON -> btState.onNext(Enabled)
+                BluetoothAdapter.STATE_OFF -> btState.onNext(Disabled)
+                BluetoothAdapter.ERROR -> btState.onNext(NotSupported)
             }
         } else {
             btState.onNext(None)

@@ -41,10 +41,11 @@ class MainActivity : AppCompatActivity(), MainView, ColorObserver {
 
     private val bluetoothStateListener: (state: BluetoothState) -> Unit = { state: BluetoothState ->
         when (state) {
-            Enabled -> Log.d(TAG, "Enabled")
-            Disabled -> Log.d(TAG, "Disabled")
-            NotSupported -> Log.d(TAG, "Not supported")
-            None -> Log.d(TAG, "None") // TODO When none appers first try request once again
+            Enabled -> showBtEnabled()
+            Disabled -> showBtDisabled()
+            NotSupported -> showBtNotSupported()
+            None -> // When app starts, BT is in previous state. Check state manually.
+                if (mPresenter.isBtEnabled()) showBtEnabled() else showBtDisabled()
         }
     }
 
@@ -118,6 +119,18 @@ class MainActivity : AppCompatActivity(), MainView, ColorObserver {
 
     override fun showMessage(text: String) {
         toast(text)
+    }
+
+    private fun showBtEnabled() {
+        Log.d(TAG, "Enabled")
+    }
+
+    private fun showBtDisabled() {
+        Log.d(TAG, "Disabled")
+    }
+
+    private fun showBtNotSupported() {
+        Log.d(TAG, "Not supported")
     }
 
     private fun initColorPicker() {
