@@ -1,24 +1,53 @@
 package com.czterysery.ledcontroller.view
 
+import android.bluetooth.BluetoothAdapter
+import android.content.IntentFilter
 import android.graphics.Color
 import android.os.Bundle
+import android.util.Log
 import android.widget.ArrayAdapter
 import androidx.appcompat.app.AppCompatActivity
+import com.czterysery.ledcontroller.BluetoothStateBroadcastReceiver
 import com.czterysery.ledcontroller.R
+import com.czterysery.ledcontroller.data.bluetooth.BluetoothController
+import com.czterysery.ledcontroller.data.model.BluetoothState
+import com.czterysery.ledcontroller.data.model.Disabled
+import com.czterysery.ledcontroller.data.model.Enabled
+import com.czterysery.ledcontroller.data.model.None
+import com.czterysery.ledcontroller.data.model.NotSupported
 import com.czterysery.ledcontroller.data.socket.SocketManagerImpl
 import com.czterysery.ledcontroller.presenter.MainPresenter
 import com.czterysery.ledcontroller.presenter.MainPresenterImpl
-import kotlinx.android.synthetic.main.activity_main.*
-import kotlinx.android.synthetic.main.row_spn.*
+import kotlinx.android.synthetic.main.activity_main.animationDropdown
+import kotlinx.android.synthetic.main.activity_main.brightnessSlider
+import kotlinx.android.synthetic.main.activity_main.colorPicker
+import kotlinx.android.synthetic.main.activity_main.connectionButton
+import kotlinx.android.synthetic.main.row_spn.dropdownItem
 import org.jetbrains.anko.textColor
 import org.jetbrains.anko.toast
 import top.defaults.colorpicker.ColorObserver
 
-
 class MainActivity : AppCompatActivity(), MainView, ColorObserver {
-    private val mPresenter: MainPresenter = MainPresenterImpl(SocketManagerImpl())
+    private val TAG = "LEDController"
+    private val btStateReceiver = BluetoothStateBroadcastReceiver()
+    private val mPresenter: MainPresenter = MainPresenterImpl(
+        btStateReceiver,
+        BluetoothController(),
+        SocketManagerImpl()
+    )
+
+    // TODO Consider one place for informing about connection state
     private var connected = false
 
+    private val bluetoothStateListener: (state: BluetoothState) -> Unit = { state: BluetoothState ->
+        when (state) {
+            Enabled -> showBtEnabled()
+            Disabled -> showBtDisabled()
+            NotSupported -> showBtNotSupported()
+            None -> // When app starts, BT is in previous state. Check state manually.
+                if (mPresenter.isBtEnabled()) showBtEnabled() else showBtDisabled()
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -38,6 +67,9 @@ class MainActivity : AppCompatActivity(), MainView, ColorObserver {
                 mPresenter.disconnect()
             }
         }
+
+        mPresenter.setBluetoothStateListener(bluetoothStateListener)
+        registerReceiver(btStateReceiver, IntentFilter(BluetoothAdapter.ACTION_STATE_CHANGED))
     }
 
     override fun onResume() {
@@ -52,6 +84,7 @@ class MainActivity : AppCompatActivity(), MainView, ColorObserver {
     }
 
     override fun onDestroy() {
+        unregisterReceiver(btStateReceiver)
         colorPicker.unsubscribe(this)
         super.onDestroy()
     }
@@ -77,12 +110,27 @@ class MainActivity : AppCompatActivity(), MainView, ColorObserver {
         connectionButton.setTextColor(receivedColor)
     }
 
+    // TODO Change name to updateCurrentBrightness
     override fun updateColorBrightnessValue(receivedBrightness: Int) {
         brightnessSlider.setValue(receivedBrightness.toFloat(), true)
     }
 
+    // TODO Add updateCurrentAnimation
+
     override fun showMessage(text: String) {
         toast(text)
+    }
+
+    private fun showBtEnabled() {
+        Log.d(TAG, "Enabled")
+    }
+
+    private fun showBtDisabled() {
+        Log.d(TAG, "Disabled")
+    }
+
+    private fun showBtNotSupported() {
+        Log.d(TAG, "Not supported")
     }
 
     private fun initColorPicker() {

@@ -3,12 +3,25 @@ package com.czterysery.ledcontroller.presenter
 import android.app.AlertDialog
 import android.content.Context
 import android.os.Handler
+import android.util.Log
+import com.czterysery.ledcontroller.BluetoothStateBroadcastReceiver
 import com.czterysery.ledcontroller.Messages
+import com.czterysery.ledcontroller.data.bluetooth.BluetoothController
+import com.czterysery.ledcontroller.data.model.BluetoothState
+import com.czterysery.ledcontroller.data.model.NotSupported
 import com.czterysery.ledcontroller.data.socket.SocketManager
 import com.czterysery.ledcontroller.view.MainView
+import io.reactivex.rxjava3.disposables.Disposable
 
-class MainPresenterImpl(private val socketManager: SocketManager) : MainPresenter {
-    private val TAG = "MainPresenterImpl"
+class MainPresenterImpl(
+    private val bluetoothStateBroadcastReceiver: BluetoothStateBroadcastReceiver,
+    private val bluetoothController: BluetoothController,
+    private val socketManager: SocketManager
+) : MainPresenter {
+    private val TAG = "MainPresenter"
+
+    private var btStateDisposable: Disposable? = null
+
     private var colorChangeCounter = 3
     private var view: MainView? = null
 
@@ -24,17 +37,31 @@ class MainPresenterImpl(private val socketManager: SocketManager) : MainPresente
         this.view = null
     }
 
+    override fun setBluetoothStateListener(listener: (state: BluetoothState) -> Unit) {
+        btStateDisposable?.dispose()
+        btStateDisposable = bluetoothStateBroadcastReceiver.btState
+            .subscribe(
+                { state ->
+                    if (bluetoothController.isSupported.not())
+                        listener.invoke(NotSupported)
+                    else
+                        listener.invoke(state)
+                },
+                { error -> Log.e(TAG, "Error during observing BT state: $error") }
+            )
+    }
+
     /* Control the LED settings */
 
     override fun connectToBluetooth(context: Context) {
 
-            if (isFullyConnected()){
-                //Is currently connected with the socket
-                view?.showMessage("Already connected.")
-            } else {
-                //Not connected, try to connect
-                selectDevice(context)
-            }
+        if (isFullyConnected()) {
+            //Is currently connected with the socket
+            view?.showMessage("Already connected.")
+        } else {
+            //Not connected, try to connect
+            selectDevice(context)
+        }
     }
 
     override fun disconnect() {
@@ -52,14 +79,14 @@ class MainPresenterImpl(private val socketManager: SocketManager) : MainPresente
     }
 
     override fun setColor(color: Int) {
-        if(colorChangeCounter == 3){ //This blocks against multiple invocations with the same color
+        if (colorChangeCounter == 3) { //This blocks against multiple invocations with the same color
             isFullyConnected().let {
                 val hexColor = String.format("#%06X", (0xFFFFFF and color))
                 socketManager.writeMessage(Messages.SET_COLOR + hexColor + "\r\n")
                 //colorChangeCounter = 0
             }
         } else {
-          //colorChangeCounter++
+            //colorChangeCounter++
         }
     }
 
@@ -79,11 +106,10 @@ class MainPresenterImpl(private val socketManager: SocketManager) : MainPresente
         isFullyConnected().let {
 
             for (i in 0..5) {
-                Handler().postDelayed( {
+                Handler().postDelayed({
                     socketManager.writeMessage(Messages.SET_ANIMATION + anim.toUpperCase() + "\r\n")
                     //Log.d(TAG, "From reading message = ${socketManager.readMessage()}")
                 }, 100)
-
             }
         }
     }
@@ -109,12 +135,13 @@ class MainPresenterImpl(private val socketManager: SocketManager) : MainPresente
     }
 
     override fun isOnlyPhoneMode() {
-
     }
 
+    override fun isBtEnabled(): Boolean = bluetoothController.isEnabled
+
     private fun isFullyConnected(): Boolean {
-        if (socketManager.isBluetoothEnabled()){
-            if (socketManager.isSocketConnected()){
+        if (socketManager.isBluetoothEnabled()) {
+            if (socketManager.isSocketConnected()) {
                 return true
             }
         } else {
@@ -153,6 +180,4 @@ class MainPresenterImpl(private val socketManager: SocketManager) : MainPresente
         }
         btDialog.show()
     }
-
-
 }

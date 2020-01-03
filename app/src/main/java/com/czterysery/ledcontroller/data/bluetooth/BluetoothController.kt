@@ -2,12 +2,14 @@ package com.czterysery.ledcontroller.data.bluetooth
 
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothDevice
-import java.util.*
+import java.util.HashMap
 
 class BluetoothController {
 
     val adapter: BluetoothAdapter?
         get() = BluetoothAdapter.getDefaultAdapter()
+
+    val isSupported = adapter != null
 
     val isEnabled: Boolean
         get() = adapter?.isEnabled ?: false
