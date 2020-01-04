@@ -1,5 +1,6 @@
 package com.czterysery.ledcontroller.view
 
+import DialogManager
 import android.bluetooth.BluetoothAdapter
 import android.content.IntentFilter
 import android.graphics.Color
@@ -29,11 +30,12 @@ import top.defaults.colorpicker.ColorObserver
 
 class MainActivity : AppCompatActivity(), MainView, ColorObserver {
     private val TAG = "LEDController"
+    private lateinit var dialogManager: DialogManager
     private val btStateReceiver = BluetoothStateBroadcastReceiver()
     private val mPresenter: MainPresenter = MainPresenterImpl(
-        btStateReceiver,
-        BluetoothController(),
-        SocketManagerImpl()
+            btStateReceiver,
+            BluetoothController(),
+            SocketManagerImpl()
     )
 
     // TODO Consider one place for informing about connection state
@@ -52,6 +54,8 @@ class MainActivity : AppCompatActivity(), MainView, ColorObserver {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
+
+        dialogManager = DialogManager(this)
 
         initColorPicker()
         initAnimSpinner()
@@ -86,6 +90,7 @@ class MainActivity : AppCompatActivity(), MainView, ColorObserver {
     override fun onDestroy() {
         unregisterReceiver(btStateReceiver)
         colorPicker.unsubscribe(this)
+        dialogManager.dismissAll()
         super.onDestroy()
     }
 
@@ -122,7 +127,7 @@ class MainActivity : AppCompatActivity(), MainView, ColorObserver {
     }
 
     private fun showBtEnabled() {
-        Log.d(TAG, "Enabled")
+        dialogManager.hideAll()
     }
 
     private fun showBtDisabled() {
@@ -130,7 +135,9 @@ class MainActivity : AppCompatActivity(), MainView, ColorObserver {
     }
 
     private fun showBtNotSupported() {
-        Log.d(TAG, "Not supported")
+        dialogManager.btNotSupported
+                .positiveActionClickListener { finish() }
+                .show()
     }
 
     private fun initColorPicker() {
