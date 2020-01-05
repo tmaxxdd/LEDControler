@@ -1,3 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 
-<resources></resources>
+<resources>
+    <color name="accentPurple">#B168FE</color>
+    <color name="accentBlue">#7AC6FF</color>
+
+    <integer-array name="gradientColors">
+        <item>@color/accentPurple</item>
+        <item>@color/accentBlue</item>
+    </integer-array>
+</resources>

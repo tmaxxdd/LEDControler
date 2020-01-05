@@ -1,35 +1,32 @@
 package com.czterysery.ledcontroller.view
 
 import DialogManager
+import android.app.Activity
 import android.bluetooth.BluetoothAdapter
+import android.content.Intent
 import android.content.IntentFilter
 import android.graphics.Color
 import android.os.Bundle
-import android.util.Log
 import android.widget.ArrayAdapter
 import androidx.appcompat.app.AppCompatActivity
 import com.czterysery.ledcontroller.BluetoothStateBroadcastReceiver
 import com.czterysery.ledcontroller.R
 import com.czterysery.ledcontroller.data.bluetooth.BluetoothController
-import com.czterysery.ledcontroller.data.model.BluetoothState
-import com.czterysery.ledcontroller.data.model.Disabled
-import com.czterysery.ledcontroller.data.model.Enabled
-import com.czterysery.ledcontroller.data.model.None
-import com.czterysery.ledcontroller.data.model.NotSupported
+import com.czterysery.ledcontroller.data.model.*
 import com.czterysery.ledcontroller.data.socket.SocketManagerImpl
 import com.czterysery.ledcontroller.presenter.MainPresenter
 import com.czterysery.ledcontroller.presenter.MainPresenterImpl
-import kotlinx.android.synthetic.main.activity_main.animationDropdown
-import kotlinx.android.synthetic.main.activity_main.brightnessSlider
-import kotlinx.android.synthetic.main.activity_main.colorPicker
-import kotlinx.android.synthetic.main.activity_main.connectionButton
-import kotlinx.android.synthetic.main.row_spn.dropdownItem
+import kotlinx.android.synthetic.main.activity_main.*
+import kotlinx.android.synthetic.main.row_spn.*
 import org.jetbrains.anko.textColor
 import org.jetbrains.anko.toast
 import top.defaults.colorpicker.ColorObserver
 
+const val REQUEST_ENABLE_BT = 1
+
 class MainActivity : AppCompatActivity(), MainView, ColorObserver {
     private val TAG = "LEDController"
+
     private lateinit var dialogManager: DialogManager
     private val btStateReceiver = BluetoothStateBroadcastReceiver()
     private val mPresenter: MainPresenter = MainPresenterImpl(
@@ -127,17 +124,27 @@ class MainActivity : AppCompatActivity(), MainView, ColorObserver {
     }
 
     private fun showBtEnabled() {
-        dialogManager.hideAll()
+        dialogManager.enableBT.dismiss()
+        dialogManager.loading.show()
     }
 
     private fun showBtDisabled() {
-        Log.d(TAG, "Disabled")
+        with(dialogManager.enableBT) {
+            positiveActionClickListener { runBtEnabler() }
+            negativeActionClickListener { this.dismiss() }
+            show()
+        }
     }
 
     private fun showBtNotSupported() {
         dialogManager.btNotSupported
                 .positiveActionClickListener { finish() }
                 .show()
+    }
+
+    private fun runBtEnabler() {
+        val enableBtIntent = Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE)
+        startActivityForResult(enableBtIntent, REQUEST_ENABLE_BT)
     }
 
     private fun initColorPicker() {

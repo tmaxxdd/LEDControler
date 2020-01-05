@@ -16,4 +16,8 @@
         <item name="spn_arrowSwitchMode">true</item>
         <item name="spn_dividerColor">?android:attr/textColorPrimary</item>
     </style>
+
+    <style name="CustomProgressBar" parent="@style/Material.Drawable.CircularProgress">
+        <item name="cpd_strokeColors">@array/gradientColors</item>
+    </style>
 </resources>
