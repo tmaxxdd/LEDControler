@@ -131,7 +131,6 @@ class MainActivity : AppCompatActivity(), MainView, ColorObserver {
     }
 
     private fun showBtDisabled() {
-        setViewsEnabled(false)
         with(dialogManager.enableBT) {
             positiveActionClickListener { runBtEnabler() }
             negativeActionClickListener { this.dismiss() }

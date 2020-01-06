@@ -1,14 +1,13 @@
 package com.czterysery.ledcontroller
 
 import android.content.Context
-import com.czterysery.ledcontroller.R
 import com.rey.material.app.Dialog
 import com.rey.material.app.SimpleDialog
 
 class DialogManager(context: Context) {
 
     val loading: Dialog = Dialog(context, R.style.CustomDialog)
-            .title(context.getString(R.string.connecting_title))
+            .title(R.string.connecting_title)
             .contentView(R.layout.dialog_loading_view)
             .cancelable(false)
     
@@ -25,7 +24,7 @@ class DialogManager(context: Context) {
             .negativeAction(R.string.cancel)
             .cancelable(true)
 
-    val reconnnect: Dialog = SimpleDialog(context, R.style.CustomDialog)
+    val reconnect: Dialog = SimpleDialog(context, R.style.CustomDialog)
             .message(R.string.not_connected_to_device)
             .title(R.string.disconnected)
             .positiveAction(R.string.reconnect)
@@ -33,12 +32,15 @@ class DialogManager(context: Context) {
 
     fun hideAll() {
         btNotSupported.dismiss()
+        enableBT.dismiss()
+        reconnect.dismiss()
         loading.dismiss()
     }
 
     fun dismissAll() {
         btNotSupported.dismissImmediately()
         enableBT.dismissImmediately()
+        reconnect.dismissImmediately()
         loading.dismissImmediately()
     }
 }

@@ -99,7 +99,7 @@
                 android:layout_marginTop="@dimen/spacing_16"
                 android:layout_marginBottom="@dimen/spacing_16"
                 android:padding="@dimen/spacing_16"
-                android:text="@string/not_connected"
+                android:text="@string/connect"
                 app:backgroundTint="?android:attr/textColorPrimaryInverse"
                 app:fontFamily="monospace"
                 app:layout_constraintBottom_toBottomOf="parent"
