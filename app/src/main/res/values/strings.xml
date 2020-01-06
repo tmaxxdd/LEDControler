@@ -3,7 +3,19 @@
     <string name="brightness_title">Brightness</string>
     <string name="not_connected">Not connected</string>
     <string name="disconnect">Disconnect</string>
+    <string name="connect">Connect</string>
     <string name="animation_title">Animation</string>
+    <string name="bt_not_supported_title">Bluetooth not supported</string>
+    <string name="close_app">Close app</string>
+    <string name="bt_not_supported_message">For some reason app cannot access Bluetooth. Probably your device doesn\'t have or support it.</string>
+    <string name="enable_bt_message">Turn on your bluetooth in order to connect to the device.</string>
+    <string name="turn_on">Turn on</string>
+    <string name="cancel">Cancel</string>
+    <string name="connecting_title">Connecting…</string>
+    <string name="bluetooth_disabled">Bluetooth disabled</string>
+    <string name="not_connected_to_device">You are not connected to the device. Maybe you want to reconnect?</string>
+    <string name="disconnected">Disconnected</string>
+    <string name="reconnect">Reconnect</string>
     <string-array name="animations">
         <item>None</item>
         <item>Pulse</item>
