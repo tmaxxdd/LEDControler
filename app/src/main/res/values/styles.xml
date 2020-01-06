@@ -20,4 +20,11 @@
     <style name="CustomProgressBar" parent="@style/Material.Drawable.CircularProgress">
         <item name="cpd_strokeColors">@array/gradientColors</item>
     </style>
+
+    <style name="CustomDialog" parent="Material.App.Dialog">
+        <item name="di_backgroundColor">?android:attr/colorForegroundInverse</item>
+        <item name="di_titleTextColor">?android:attr/textColorPrimary</item>
+        <item name="di_messageTextColor">?android:attr/textColorSecondary</item>
+        <item name="di_positiveActionTextColor">@color/accentPurple</item>
+    </style>
 </resources>

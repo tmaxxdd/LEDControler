@@ -11,6 +11,7 @@
     <string name="turn_on">Turn on</string>
     <string name="cancel">Cancel</string>
     <string name="connecting_title">Connecting…</string>
+    <string name="bluetooth_disabled">Bluetooth disabled</string>
     <string-array name="animations">
         <item>None</item>
         <item>Pulse</item>
