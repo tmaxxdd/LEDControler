@@ -1,12 +1,12 @@
 package com.czterysery.ledcontroller.view
 
-import DialogManager
-import android.app.Activity
+import com.czterysery.ledcontroller.DialogManager
 import android.bluetooth.BluetoothAdapter
 import android.content.Intent
 import android.content.IntentFilter
 import android.graphics.Color
 import android.os.Bundle
+import android.view.PointerIcon
 import android.widget.ArrayAdapter
 import androidx.appcompat.app.AppCompatActivity
 import com.czterysery.ledcontroller.BluetoothStateBroadcastReceiver
@@ -37,6 +37,7 @@ class MainActivity : AppCompatActivity(), MainView, ColorObserver {
 
     // TODO Consider one place for informing about connection state
     private var connected = false
+    private var allowChangeColor = false
 
     private val bluetoothStateListener: (state: BluetoothState) -> Unit = { state: BluetoothState ->
         when (state) {
@@ -92,8 +93,10 @@ class MainActivity : AppCompatActivity(), MainView, ColorObserver {
     }
 
     override fun onColor(color: Int, fromUser: Boolean, shouldPropagate: Boolean) {
-        mPresenter.setColor(color)
-        updateCurrentColor(color)
+        if (allowChangeColor) {
+            mPresenter.setColor(color)
+            updateCurrentColor(color)
+        }
     }
 
     override fun updateConnectionState(isConnected: Boolean) {
@@ -102,7 +105,7 @@ class MainActivity : AppCompatActivity(), MainView, ColorObserver {
             mPresenter.loadCurrentParams()
             connectionButton.text = getString(R.string.disconnect)
         } else {
-            connectionButton.text = getString(R.string.not_connected)
+            connectionButton.text = getString(R.string.connect)
         }
     }
 
@@ -125,10 +128,10 @@ class MainActivity : AppCompatActivity(), MainView, ColorObserver {
 
     private fun showBtEnabled() {
         dialogManager.enableBT.dismiss()
-        dialogManager.loading.show()
     }
 
     private fun showBtDisabled() {
+        setViewsEnabled(false)
         with(dialogManager.enableBT) {
             positiveActionClickListener { runBtEnabler() }
             negativeActionClickListener { this.dismiss() }
@@ -140,6 +143,20 @@ class MainActivity : AppCompatActivity(), MainView, ColorObserver {
         dialogManager.btNotSupported
                 .positiveActionClickListener { finish() }
                 .show()
+    }
+
+    private fun setViewsEnabled(enabled: Boolean) {
+        if (enabled) {
+            colorPicker.alpha = 1f
+            animationDropdown.isEnabled = true
+            brightnessSlider.isEnabled = true
+            allowChangeColor = true
+        } else {
+            colorPicker.alpha = 0.5f
+            animationDropdown.isEnabled = false
+            brightnessSlider.isEnabled = false
+            allowChangeColor = false
+        }
     }
 
     private fun runBtEnabler() {

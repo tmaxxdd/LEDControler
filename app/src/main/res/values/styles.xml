@@ -26,5 +26,6 @@
         <item name="di_titleTextColor">?android:attr/textColorPrimary</item>
         <item name="di_messageTextColor">?android:attr/textColorSecondary</item>
         <item name="di_positiveActionTextColor">@color/accentPurple</item>
+        <item name="di_negativeActionTextColor">@color/accentBlue</item>
     </style>
 </resources>

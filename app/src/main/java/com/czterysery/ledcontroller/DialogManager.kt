@@ -1,3 +1,5 @@
+package com.czterysery.ledcontroller
+
 import android.content.Context
 import com.czterysery.ledcontroller.R
 import com.rey.material.app.Dialog
@@ -21,6 +23,12 @@ class DialogManager(context: Context) {
             .title(R.string.bluetooth_disabled)
             .positiveAction(R.string.turn_on)
             .negativeAction(R.string.cancel)
+            .cancelable(true)
+
+    val reconnnect: Dialog = SimpleDialog(context, R.style.CustomDialog)
+            .message(R.string.not_connected_to_device)
+            .title(R.string.disconnected)
+            .positiveAction(R.string.reconnect)
             .cancelable(true)
 
     fun hideAll() {
