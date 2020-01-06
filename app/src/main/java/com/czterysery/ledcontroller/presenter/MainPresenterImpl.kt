@@ -8,55 +8,64 @@ import com.czterysery.ledcontroller.BluetoothStateBroadcastReceiver
 import com.czterysery.ledcontroller.Messages
 import com.czterysery.ledcontroller.data.bluetooth.BluetoothController
 import com.czterysery.ledcontroller.data.model.BluetoothState
+import com.czterysery.ledcontroller.data.model.Connected
+import com.czterysery.ledcontroller.data.model.ConnectionState
 import com.czterysery.ledcontroller.data.model.NotSupported
 import com.czterysery.ledcontroller.data.socket.SocketManager
 import com.czterysery.ledcontroller.view.MainView
+import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers
+import io.reactivex.rxjava3.core.Scheduler
 import io.reactivex.rxjava3.disposables.Disposable
+import io.reactivex.rxjava3.schedulers.Schedulers
 
 class MainPresenterImpl(
-    private val bluetoothStateBroadcastReceiver: BluetoothStateBroadcastReceiver,
-    private val bluetoothController: BluetoothController,
-    private val socketManager: SocketManager
+        private val bluetoothStateBroadcastReceiver: BluetoothStateBroadcastReceiver,
+        private val bluetoothController: BluetoothController,
+        private val socketManager: SocketManager
 ) : MainPresenter {
     private val TAG = "MainPresenter"
 
     private var btStateDisposable: Disposable? = null
+    private var connectionStateDisposable: Disposable? = null
 
     private var colorChangeCounter = 3
     private var view: MainView? = null
 
-    /* Control the main view state */
-
-    /* App is shown */
     override fun onAttach(view: MainView) {
         this.view = view
     }
 
-    /* App has disappeared */
     override fun onDetach() {
         this.view = null
+        disposeAll()
     }
 
     override fun setBluetoothStateListener(listener: (state: BluetoothState) -> Unit) {
         btStateDisposable?.dispose()
-        btStateDisposable = bluetoothStateBroadcastReceiver.btState
-            .subscribe(
-                { state ->
-                    if (bluetoothController.isSupported.not())
-                        listener.invoke(NotSupported)
-                    else
-                        listener.invoke(state)
-                },
-                { error -> Log.e(TAG, "Error during observing BT state: $error") }
-            )
+        btStateDisposable = bluetoothStateBroadcastReceiver
+                .btState
+                .subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(
+                        { state -> checkIfBtSupportedAndReturnState(listener, state) },
+                        { error -> Log.e(TAG, "Error during observing BT state: $error") }
+                )
     }
 
-    /* Control the LED settings */
+    override fun setConnectionStateListener(listener: (state: ConnectionState) -> Unit) {
+        connectionStateDisposable?.dispose()
+        connectionStateDisposable = socketManager
+                .connectionState
+                .subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(
+                        { state -> listener(state) },
+                        { error -> Log.e(TAG, "Error during observing connection state: $error") }
+                )
+    }
 
-    override fun connectToBluetooth(context: Context) {
-
+    override fun connect(context: Context) {
         if (isFullyConnected()) {
-            //Is currently connected with the socket
             view?.showMessage("Already connected.")
         } else {
             //Not connected, try to connect
@@ -116,8 +125,6 @@ class MainPresenterImpl(
 
     /* Get the current params from an ESP32 */
     override fun loadCurrentParams() {
-        isConnected()
-        isOnlyPhoneMode()
         getColor()
         getBrightness()
     }
@@ -130,14 +137,17 @@ class MainPresenterImpl(
         //view?.setBrightnessValue(value)
     }
 
-    override fun isConnected() {
-        //view?.updateConnectionState()
-    }
-
-    override fun isOnlyPhoneMode() {
-    }
+    override fun isConnected() =
+            socketManager.connectionState.value is Connected
 
     override fun isBtEnabled(): Boolean = bluetoothController.isEnabled
+
+    private fun checkIfBtSupportedAndReturnState(listener: (state: BluetoothState) -> Unit, state: BluetoothState) {
+        if (bluetoothController.isSupported.not())
+            listener(NotSupported)
+        else
+            listener(state)
+    }
 
     private fun isFullyConnected(): Boolean {
         if (socketManager.isBluetoothEnabled()) {
@@ -167,6 +177,12 @@ class MainPresenterImpl(
         socketManager.writeMessage(Messages.CONNECTED + "\r\n")
     }
 
+    private fun disposeAll() {
+        btStateDisposable?.dispose()
+        connectionStateDisposable?.dispose()
+    }
+
+    // TODO Export to the `DialogManger`
     private fun selectDevice(context: Context) {
         val btDialog = AlertDialog.Builder(context)
         val devices = socketManager.getBluetoothDevices()

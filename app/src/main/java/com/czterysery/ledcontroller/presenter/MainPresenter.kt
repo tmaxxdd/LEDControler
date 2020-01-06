@@ -2,12 +2,15 @@ package com.czterysery.ledcontroller.presenter
 
 import android.content.Context
 import com.czterysery.ledcontroller.data.model.BluetoothState
+import com.czterysery.ledcontroller.data.model.ConnectionState
 
 interface MainPresenter: BasePresenter {
 
     fun setBluetoothStateListener(listener: (state: BluetoothState) -> Unit)
 
-    fun connectToBluetooth(context: Context)
+    fun setConnectionStateListener(listener: (state: ConnectionState) -> Unit)
+
+    fun connect(context: Context)
 
     fun disconnect()
 
@@ -15,19 +18,12 @@ interface MainPresenter: BasePresenter {
 
     fun setBrightness(value: Int)
 
-    fun setOnlyPhoneMode(state: Boolean)
-
     fun setAnimation(anim: String)
 
+    // TODO Replace it with getConfiguration: Configuration()
     fun loadCurrentParams()
 
-    fun getColor()
-
-    fun getBrightness()
-
-    fun isConnected()
-
-    fun isOnlyPhoneMode()
+    fun isConnected(): Boolean
 
     fun isBtEnabled(): Boolean
 

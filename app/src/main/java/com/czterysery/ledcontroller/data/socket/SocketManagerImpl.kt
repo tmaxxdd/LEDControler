@@ -6,59 +6,54 @@ import android.bluetooth.BluetoothSocket
 import android.util.Log
 import com.czterysery.ledcontroller.Constants
 import com.czterysery.ledcontroller.data.bluetooth.BluetoothController
+import com.czterysery.ledcontroller.data.model.Connected
+import com.czterysery.ledcontroller.data.model.ConnectionState
+import com.czterysery.ledcontroller.data.model.Disconnected
+import com.czterysery.ledcontroller.data.model.Error
+import io.reactivex.rxjava3.core.Completable
+import io.reactivex.rxjava3.subjects.BehaviorSubject
 import java.io.IOException
 
-/**
- * Created by tmax0 on 27.11.2018.
- */
 class SocketManagerImpl : SocketManager {
     private val TAG = "SocketManager"
     private val mmBuffer: ByteArray = ByteArray(1024) // mmBuffer store for the stream
 
     companion object {
-        private var connectionSuccess = false
-        private var isBtConnected = false
         private var btSocket: BluetoothSocket? = null
-        private var myBluetooth: BluetoothAdapter? = null
     }
 
-    // TODO Remove constraint between BluetoothController and SocketManagerImpl
-    private val bluetoothController = BluetoothController()
+    override var connectionState: BehaviorSubject<ConnectionState> =
+            BehaviorSubject.createDefault(Disconnected)
 
-    override fun connect(address: String): Boolean {
-        myBluetooth = bluetoothController.adapter
-        val device = myBluetooth?.getRemoteDevice(address)
-        ConnectThread(myBluetooth!!, device!!).run()
-        return connectionSuccess
+    override fun connect(address: String, btAdapter: BluetoothAdapter) {
+        val device = btAdapter.getRemoteDevice(address)
+        ConnectThread(btAdapter, device).run()
     }
 
-    override fun disconnect(): Boolean {
-        return if (btSocket != null) { //If the btSocket is busy
+    override fun disconnect() {
+        btSocket?.let {
             try {
                 btSocket!!.close() //close connection
-                isBtConnected = false
-                connectionSuccess = false
-                true
+                connectionState.onNext(Disconnected)
             } catch (e: IOException) {
-                Log.e(TAG, "Could not close the client socket", e)
-                false
+                Log.e(TAG, "Couldn't close the client socket", e)
+                connectionState.onNext(Error("Can't disconnect!"))
             }
-        } else {
-            false
         }
     }
 
+    // TODO Refactor
     override fun writeMessage(message: String) {
-        if (btSocket != null) {
+        btSocket?.let {
             try {
                 btSocket!!.outputStream.write(message.toByteArray())
             } catch (e: IOException) {
                 Log.d(TAG, "Couldn't write message to the socket")
             }
-
         }
     }
 
+    // TODO Refactor
     override fun readMessage(): String {
         var len = 0
         if (btSocket != null) {
@@ -75,18 +70,6 @@ class SocketManagerImpl : SocketManager {
             }
         }
         return ""
-    }
-
-    override fun isBluetoothConnected(): Boolean = isBtConnected
-
-    override fun isSocketConnected(): Boolean = connectionSuccess
-
-    override fun isBluetoothEnabled(): Boolean = bluetoothController.isEnabled
-
-    override fun getDeviceAddress(name: String): String? = bluetoothController.getDeviceAddress(name)
-
-    override fun getBluetoothDevices(): HashMap<String, String> {
-        return bluetoothController.getDevices()
     }
 
     private inner class ConnectThread(private val adapter: BluetoothAdapter, private val device: BluetoothDevice) : Thread() {
@@ -106,14 +89,14 @@ class SocketManagerImpl : SocketManager {
                 try {
                     socket.connect()
                 } catch (e: Exception) {
-                    Log.d(TAG, "Timeout! Cannot connect to a device")
+                    connectionState.onNext(Error("Timeout! Cannot connect to a device"))
                     cancel()
                 }
+
                 if (socket.isConnected) {
-                    Log.d(TAG, "Connected to the ${device.name}")
-                    connectionSuccess = true
+                    connectionState.onNext(Connected(device.name))
                 } else {
-                    Log.d(TAG, "Connection Failed. Is it a SPP Bluetooth? Try again.")
+                    connectionState.onNext(Error("Connection Failed. Is it a SPP Bluetooth? Try again."))
                     cancel()
                 }
 
@@ -127,8 +110,6 @@ class SocketManagerImpl : SocketManager {
         fun cancel() {
             try {
                 mmSocket?.close()
-                isBtConnected = false
-                connectionSuccess = false
             } catch (e: IOException) {
                 Log.e(TAG, "Could not close the client socket", e)
             }
