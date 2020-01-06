@@ -16,6 +16,7 @@
     <string name="not_connected_to_device">You are not connected to the device. Maybe you want to reconnect?</string>
     <string name="disconnected">Disconnected</string>
     <string name="reconnect">Reconnect</string>
+    <string name="available_devices_title">Available devices</string>
     <string-array name="animations">
         <item>None</item>
         <item>Pulse</item>

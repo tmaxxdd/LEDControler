@@ -1,6 +1,6 @@
 package com.czterysery.ledcontroller.presenter
 
-import android.app.AlertDialog
+import android.bluetooth.BluetoothAdapter
 import android.content.Context
 import android.os.Handler
 import android.util.Log
@@ -10,17 +10,17 @@ import com.czterysery.ledcontroller.data.bluetooth.BluetoothController
 import com.czterysery.ledcontroller.data.model.BluetoothState
 import com.czterysery.ledcontroller.data.model.Connected
 import com.czterysery.ledcontroller.data.model.ConnectionState
+import com.czterysery.ledcontroller.data.model.Error
 import com.czterysery.ledcontroller.data.model.NotSupported
 import com.czterysery.ledcontroller.data.socket.SocketManager
 import com.czterysery.ledcontroller.view.MainView
 import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers
-import io.reactivex.rxjava3.core.Scheduler
 import io.reactivex.rxjava3.disposables.Disposable
 import io.reactivex.rxjava3.schedulers.Schedulers
 
 class MainPresenterImpl(
         private val bluetoothStateBroadcastReceiver: BluetoothStateBroadcastReceiver,
-        private val bluetoothController: BluetoothController,
+        private val btController: BluetoothController,
         private val socketManager: SocketManager
 ) : MainPresenter {
     private val TAG = "MainPresenter"
@@ -28,6 +28,7 @@ class MainPresenterImpl(
     private var btStateDisposable: Disposable? = null
     private var connectionStateDisposable: Disposable? = null
 
+    // TODO Remove
     private var colorChangeCounter = 3
     private var view: MainView? = null
 
@@ -65,135 +66,88 @@ class MainPresenterImpl(
     }
 
     override fun connect(context: Context) {
-        if (isFullyConnected()) {
-            view?.showMessage("Already connected.")
-        } else {
-            //Not connected, try to connect
-            selectDevice(context)
+        view?.let {
+            val devices = btController.getDevices().keys.toTypedArray()
+            it.showDevicesList(devices) { deviceName ->
+                view?.showLoading()
+                tryToConnectWithDevice(deviceName)
+            }
         }
     }
 
     override fun disconnect() {
-        if (socketManager.isBluetoothEnabled()) {
-            if (socketManager.isSocketConnected()) {
-                socketManager.writeMessage(Messages.DISCONNECTED + "\r\n")
-                if (socketManager.disconnect()) {
-                    view?.updateConnectionState(false)
-                    view?.showMessage("Disconnected from device.")
-                } else {
-                    view?.showMessage("Error during disconnecting from socket.")
-                }
-            }
-        }
+        sendConnectionMessage(connected = false)
+        socketManager.disconnect()
     }
 
+    // TODO Refactor
     override fun setColor(color: Int) {
         if (colorChangeCounter == 3) { //This blocks against multiple invocations with the same color
-            isFullyConnected().let {
-                val hexColor = String.format("#%06X", (0xFFFFFF and color))
-                socketManager.writeMessage(Messages.SET_COLOR + hexColor + "\r\n")
-                //colorChangeCounter = 0
-            }
-        } else {
-            //colorChangeCounter++
+            val hexColor = String.format("#%06X", (0xFFFFFF and color))
+            socketManager.writeMessage(Messages.SET_COLOR + hexColor + "\r\n")
+            //colorChangeCounter = 0
         }
     }
 
     override fun setBrightness(value: Int) {
-        isFullyConnected().let {
-            socketManager.writeMessage(Messages.SET_BRIGHTNESS + value + "\r\n")
-        }
+        socketManager.writeMessage(Messages.SET_BRIGHTNESS + value + "\r\n")
+
     }
 
-    override fun setOnlyPhoneMode(state: Boolean) {
-        isFullyConnected().let {
-            socketManager.writeMessage(Messages.SET_ONLY_PHONE_MODE + state + "\r\n")
-        }
-    }
-
+    // TODO Refactor
     override fun setAnimation(anim: String) {
-        isFullyConnected().let {
-
-            for (i in 0..5) {
-                Handler().postDelayed({
-                    socketManager.writeMessage(Messages.SET_ANIMATION + anim.toUpperCase() + "\r\n")
-                    //Log.d(TAG, "From reading message = ${socketManager.readMessage()}")
-                }, 100)
-            }
+        for (i in 0..5) {
+            Handler().postDelayed({
+                socketManager.writeMessage(Messages.SET_ANIMATION + anim.toUpperCase() + "\r\n")
+                //Log.d(TAG, "From reading message = ${socketManager.readMessage()}")
+            }, 100)
         }
+    }
+
+    override fun sendConnectionMessage(connected: Boolean) {
+        if (connected)
+            socketManager.writeMessage(Messages.CONNECTED + "\r\n")
+        else
+            socketManager.writeMessage(Messages.DISCONNECTED + "\r\n")
     }
 
     /* Get the current params from an ESP32 */
+    // TODO Implement this
     override fun loadCurrentParams() {
-        getColor()
-        getBrightness()
-    }
-
-    override fun getColor() {
-        //view?.updateCurrentColor(color)
-    }
-
-    override fun getBrightness() {
-        //view?.setBrightnessValue(value)
+//        getColor()
+//        getBrightness()
     }
 
     override fun isConnected() =
             socketManager.connectionState.value is Connected
 
-    override fun isBtEnabled(): Boolean = bluetoothController.isEnabled
+    override fun isBtEnabled(): Boolean = btController.isEnabled
 
     private fun checkIfBtSupportedAndReturnState(listener: (state: BluetoothState) -> Unit, state: BluetoothState) {
-        if (bluetoothController.isSupported.not())
+        if (btController.isSupported.not())
             listener(NotSupported)
         else
             listener(state)
     }
 
-    private fun isFullyConnected(): Boolean {
-        if (socketManager.isBluetoothEnabled()) {
-            if (socketManager.isSocketConnected()) {
-                return true
-            }
-        } else {
-            view?.showMessage("Please turn on Bluetooth!")
-        }
+    private fun tryToConnectWithDevice(deviceName: String) {
+        when {
+            btController.adapter == null ->
+                socketManager.connectionState.onNext(Error("Bluetooth is not available"))
 
-        return false
-    }
+            btController.getDeviceAddress(deviceName) == null ->
+                socketManager.connectionState.onNext(Error("Cannot find the selected device"))
 
-    private fun tryConnect(address: String) {
-        if (socketManager.connect(address)) {
-            onConnected()
-        } else {
-            view?.showMessage("Can't connect.")
+            else ->
+                socketManager.connect(
+                        btController.getDeviceAddress(deviceName) as String,
+                        btController.adapter as BluetoothAdapter
+                )
         }
-    }
-
-    private fun onConnected() {
-        view?.let {
-            it.showMessage("Connected!")
-            it.updateConnectionState(true)
-        }
-        socketManager.writeMessage(Messages.CONNECTED + "\r\n")
     }
 
     private fun disposeAll() {
         btStateDisposable?.dispose()
         connectionStateDisposable?.dispose()
-    }
-
-    // TODO Export to the `DialogManger`
-    private fun selectDevice(context: Context) {
-        val btDialog = AlertDialog.Builder(context)
-        val devices = socketManager.getBluetoothDevices()
-        val titles = devices.keys.toTypedArray() //Get names
-        btDialog.setTitle("Available devices")
-        btDialog.setItems(titles) { _, which ->
-            //On Click
-            //Return bluetooth's address for selected device
-            val selectedDevice = devices[titles[which]]!!
-            tryConnect(selectedDevice)
-        }
-        btDialog.show()
     }
 }

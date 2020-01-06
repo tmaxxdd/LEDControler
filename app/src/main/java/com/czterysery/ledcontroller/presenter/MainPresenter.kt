@@ -20,6 +20,8 @@ interface MainPresenter: BasePresenter {
 
     fun setAnimation(anim: String)
 
+    fun sendConnectionMessage(connected: Boolean)
+
     // TODO Replace it with getConfiguration: Configuration()
     fun loadCurrentParams()
 

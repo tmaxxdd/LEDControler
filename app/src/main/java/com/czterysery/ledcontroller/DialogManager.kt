@@ -1,16 +1,17 @@
 package com.czterysery.ledcontroller
 
+import android.app.AlertDialog
 import android.content.Context
 import com.rey.material.app.Dialog
 import com.rey.material.app.SimpleDialog
 
-class DialogManager(context: Context) {
+class DialogManager(private val context: Context) {
 
     val loading: Dialog = Dialog(context, R.style.CustomDialog)
             .title(R.string.connecting_title)
             .contentView(R.layout.dialog_loading_view)
             .cancelable(false)
-    
+
     val btNotSupported: Dialog = SimpleDialog(context, R.style.CustomDialog)
             .message(R.string.bt_not_supported_message)
             .title(R.string.bt_not_supported_title)
@@ -29,6 +30,15 @@ class DialogManager(context: Context) {
             .title(R.string.disconnected)
             .positiveAction(R.string.reconnect)
             .cancelable(true)
+
+    fun deviceSelection(devices: Array<String>, selectedDevice: (String) -> Unit): AlertDialog =
+            AlertDialog.Builder(context)
+                    .setTitle(R.string.available_devices_title)
+                    .setItems(devices) { dialog, selected: Int ->
+                        selectedDevice(devices[selected])
+                        dialog.dismiss()
+                    }.create()
+
 
     fun hideAll() {
         btNotSupported.dismiss()

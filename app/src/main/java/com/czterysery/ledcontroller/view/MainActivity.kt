@@ -108,6 +108,7 @@ class MainActivity : AppCompatActivity(), MainView, ColorObserver {
 
     override fun updateConnectionState(isConnected: Boolean) {
         if (isConnected) {
+            mPresenter.sendConnectionMessage(connected = true)
             mPresenter.loadCurrentParams()
             connectionButton.text = getString(R.string.disconnect)
         } else {
@@ -140,18 +141,33 @@ class MainActivity : AppCompatActivity(), MainView, ColorObserver {
         toast(text)
     }
 
+    override fun showLoading() {
+        dialogManager.loading.show()
+    }
+
+    override fun showDevicesList(devices: Array<String>, selectedDevice: (String) -> Unit) {
+        dialogManager.deviceSelection(devices, selectedDevice)
+                .show()
+    }
+
     private fun showConnected(device: String) {
         // TODO Show snackbar with device name
+        updateConnectionState(true)
         setViewsEnabled(true)
+        dialogManager.loading.dismiss()
     }
 
     private fun showDisconnected() {
-        // TODO Show snackbar with device name
+        // TODO Show snackbar with message
+        updateConnectionState(false)
         setViewsEnabled(false)
+        dialogManager.loading.dismiss()
     }
 
     private fun showError(message: String) {
+        // TODO Show snackbar with error
         setViewsEnabled(false)
+        dialogManager.loading.dismiss()
     }
 
     private fun showBtEnabled() {

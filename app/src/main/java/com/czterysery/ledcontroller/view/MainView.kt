@@ -9,4 +9,8 @@ interface MainView {
     fun updateConnectionState(isConnected: Boolean)
 
     fun showMessage(text: String)
+
+    fun showLoading()
+
+    fun showDevicesList(devices: Array<String>, selectedDevice: (String) -> Unit)
 }
