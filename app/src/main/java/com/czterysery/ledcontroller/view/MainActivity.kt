@@ -29,9 +29,9 @@ class MainActivity : AppCompatActivity(), MainView, ColorObserver {
     private lateinit var dialogManager: DialogManager
     private val btStateReceiver = BluetoothStateBroadcastReceiver()
     private val mPresenter: MainPresenter = MainPresenterImpl(
-            btStateReceiver,
-            BluetoothController(),
-            SocketManagerImpl()
+        btStateReceiver,
+        BluetoothController(),
+        SocketManagerImpl()
     )
 
     private val bluetoothStateListener: (state: BluetoothState) -> Unit = { state: BluetoothState ->
@@ -67,7 +67,7 @@ class MainActivity : AppCompatActivity(), MainView, ColorObserver {
             mPresenter.setBrightness(newValue)
         }
 
-        connectionButton.setOnClickListener {
+        connectionAction.setOnClickListener {
             if (mPresenter.isBtEnabled()) {
                 changeConnectionStatus()
             } else {
@@ -110,16 +110,16 @@ class MainActivity : AppCompatActivity(), MainView, ColorObserver {
         if (isConnected) {
             mPresenter.sendConnectionMessage(connected = true)
             mPresenter.loadCurrentParams()
-            connectionButton.text = getString(R.string.disconnect)
+            connectionAction.text = getString(R.string.disconnect)
         } else {
-            connectionButton.text = getString(R.string.connect)
+            connectionAction.text = getString(R.string.connect)
         }
     }
 
     override fun updateCurrentColor(receivedColor: Int) {
         dropdownItem?.textColor = receivedColor
         brightnessSlider.setPrimaryColor(receivedColor)
-        connectionButton.setTextColor(receivedColor)
+        connectionAction.setTextColor(receivedColor)
     }
 
     // TODO Change name to updateCurrentBrightness
@@ -128,8 +128,8 @@ class MainActivity : AppCompatActivity(), MainView, ColorObserver {
     }
 
     private fun changeConnectionStatus() {
-        if (mPresenter.isConnected()) {
-            mPresenter.connect(this)
+        if (!mPresenter.isConnected()) {
+            mPresenter.connect()
         } else {
             mPresenter.disconnect()
         }
@@ -147,7 +147,7 @@ class MainActivity : AppCompatActivity(), MainView, ColorObserver {
 
     override fun showDevicesList(devices: Array<String>, selectedDevice: (String) -> Unit) {
         dialogManager.deviceSelection(devices, selectedDevice)
-                .show()
+            .show()
     }
 
     private fun showConnected(device: String) {
@@ -185,8 +185,8 @@ class MainActivity : AppCompatActivity(), MainView, ColorObserver {
 
     private fun showBtNotSupported() {
         dialogManager.btNotSupported
-                .positiveActionClickListener { finish() }
-                .show()
+            .positiveActionClickListener { finish() }
+            .show()
     }
 
     private fun setViewsEnabled(enabled: Boolean) {

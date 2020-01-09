@@ -1,16 +1,15 @@
 package com.czterysery.ledcontroller.presenter
 
-import android.content.Context
 import com.czterysery.ledcontroller.data.model.BluetoothState
 import com.czterysery.ledcontroller.data.model.ConnectionState
 
-interface MainPresenter: BasePresenter {
+interface MainPresenter : BasePresenter {
 
     fun setBluetoothStateListener(listener: (state: BluetoothState) -> Unit)
 
     fun setConnectionStateListener(listener: (state: ConnectionState) -> Unit)
 
-    fun connect(context: Context)
+    fun connect()
 
     fun disconnect()
 
@@ -28,5 +27,4 @@ interface MainPresenter: BasePresenter {
     fun isConnected(): Boolean
 
     fun isBtEnabled(): Boolean
-
 }
