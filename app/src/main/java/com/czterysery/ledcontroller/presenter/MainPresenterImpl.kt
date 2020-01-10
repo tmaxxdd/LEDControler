@@ -1,17 +1,12 @@
 package com.czterysery.ledcontroller.presenter
 
 import android.bluetooth.BluetoothAdapter
-import android.content.Context
 import android.os.Handler
 import android.util.Log
 import com.czterysery.ledcontroller.BluetoothStateBroadcastReceiver
 import com.czterysery.ledcontroller.Messages
 import com.czterysery.ledcontroller.data.bluetooth.BluetoothController
-import com.czterysery.ledcontroller.data.model.BluetoothState
-import com.czterysery.ledcontroller.data.model.Connected
-import com.czterysery.ledcontroller.data.model.ConnectionState
-import com.czterysery.ledcontroller.data.model.Error
-import com.czterysery.ledcontroller.data.model.NotSupported
+import com.czterysery.ledcontroller.data.model.*
 import com.czterysery.ledcontroller.data.socket.SocketManager
 import com.czterysery.ledcontroller.view.MainView
 import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers
@@ -19,9 +14,9 @@ import io.reactivex.rxjava3.disposables.Disposable
 import io.reactivex.rxjava3.schedulers.Schedulers
 
 class MainPresenterImpl(
-    private val bluetoothStateBroadcastReceiver: BluetoothStateBroadcastReceiver,
-    private val btController: BluetoothController,
-    private val socketManager: SocketManager
+        private val bluetoothStateBroadcastReceiver: BluetoothStateBroadcastReceiver,
+        private val btController: BluetoothController,
+        private val socketManager: SocketManager
 ) : MainPresenter {
     private val TAG = "MainPresenter"
 
@@ -44,38 +39,41 @@ class MainPresenterImpl(
     override fun setBluetoothStateListener(listener: (state: BluetoothState) -> Unit) {
         btStateDisposable?.dispose()
         btStateDisposable = bluetoothStateBroadcastReceiver.btState
-            .subscribeOn(Schedulers.io())
-            .observeOn(AndroidSchedulers.mainThread())
-            .subscribe(
-                { state -> checkIfBtSupportedAndReturnState(listener, state) },
-                { error -> Log.e(TAG, "Error during observing BT state: $error") }
-            )
+                .subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(
+                        { state -> checkIfBtSupportedAndReturnState(listener, state) },
+                        { error -> Log.e(TAG, "Error during observing BT state: $error") }
+                )
     }
 
     override fun setConnectionStateListener(listener: (state: ConnectionState) -> Unit) {
         connectionStateDisposable?.dispose()
         connectionStateDisposable = socketManager.connectionState
-            .subscribeOn(Schedulers.io())
-            .observeOn(AndroidSchedulers.mainThread())
-            .subscribe(
-                { state -> listener(state) },
-                { error -> Log.e(TAG, "Error during observing connection state: $error") }
-            )
+                .subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(
+                        { state -> listener(state) },
+                        { error -> Log.e(TAG, "Error during observing connection state: $error") }
+                )
     }
 
     override fun connect() {
         view?.let {
             val devices = btController.getDevices().keys.toTypedArray()
-            it.showDevicesList(devices) { deviceName ->
-                // On selected device
-                it.showLoading()
-                tryToConnectWithDevice(deviceName)
+            if (devices.isNotEmpty()) {
+                it.showDevicesList(devices) { deviceName ->
+                    // On selected device
+                    it.showLoading()
+                    tryToConnectWithDevice(deviceName)
+                }
+            } else {
+                it.showPairWithDevice()
             }
         }
     }
 
     override fun disconnect() {
-        view?.showLoading()
         sendConnectionMessage(connected = false)
         socketManager.disconnect()
     }
@@ -118,7 +116,7 @@ class MainPresenterImpl(
     }
 
     override fun isConnected() =
-        socketManager.connectionState.value is Connected
+            socketManager.connectionState.value is Connected
 
     override fun isBtEnabled(): Boolean = btController.isEnabled
 
@@ -139,8 +137,8 @@ class MainPresenterImpl(
 
             else ->
                 socketManager.connect(
-                    btController.getDeviceAddress(deviceName) as String,
-                    btController.adapter as BluetoothAdapter
+                        btController.getDeviceAddress(deviceName) as String,
+                        btController.adapter as BluetoothAdapter
                 )
         }
     }

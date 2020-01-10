@@ -13,4 +13,6 @@ interface MainView {
     fun showLoading()
 
     fun showDevicesList(devices: Array<String>, selectedDevice: (String) -> Unit)
+
+    fun showPairWithDevice()
 }

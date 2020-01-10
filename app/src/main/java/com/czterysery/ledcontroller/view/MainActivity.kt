@@ -15,6 +15,7 @@ import com.czterysery.ledcontroller.data.model.*
 import com.czterysery.ledcontroller.data.socket.SocketManagerImpl
 import com.czterysery.ledcontroller.presenter.MainPresenter
 import com.czterysery.ledcontroller.presenter.MainPresenterImpl
+import com.google.android.material.snackbar.Snackbar
 import kotlinx.android.synthetic.main.activity_main.*
 import kotlinx.android.synthetic.main.row_spn.*
 import org.jetbrains.anko.textColor
@@ -29,9 +30,9 @@ class MainActivity : AppCompatActivity(), MainView, ColorObserver {
     private lateinit var dialogManager: DialogManager
     private val btStateReceiver = BluetoothStateBroadcastReceiver()
     private val mPresenter: MainPresenter = MainPresenterImpl(
-        btStateReceiver,
-        BluetoothController(),
-        SocketManagerImpl()
+            btStateReceiver,
+            BluetoothController(),
+            SocketManagerImpl()
     )
 
     private val bluetoothStateListener: (state: BluetoothState) -> Unit = { state: BluetoothState ->
@@ -53,6 +54,7 @@ class MainActivity : AppCompatActivity(), MainView, ColorObserver {
     }
 
     private var allowChangeColor = false
+    private var previousConnectionState: ConnectionState = Disconnected
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -112,6 +114,7 @@ class MainActivity : AppCompatActivity(), MainView, ColorObserver {
             mPresenter.loadCurrentParams()
             connectionAction.text = getString(R.string.disconnect)
         } else {
+            mPresenter.sendConnectionMessage(connected = false)
             connectionAction.text = getString(R.string.connect)
         }
     }
@@ -147,20 +150,30 @@ class MainActivity : AppCompatActivity(), MainView, ColorObserver {
 
     override fun showDevicesList(devices: Array<String>, selectedDevice: (String) -> Unit) {
         dialogManager.deviceSelection(devices, selectedDevice)
-            .show()
+                .show()
+    }
+
+    override fun showPairWithDevice() {
+        with(dialogManager.pairWithDevice) {
+            positiveActionClickListener { dismiss() }
+            show()
+        }
     }
 
     private fun showConnected(device: String) {
-        // TODO Show snackbar with device name
         updateConnectionState(true)
         setViewsEnabled(true)
-        dialogManager.loading.dismiss()
+        showBottomMessage(getString(R.string.connected_with, device))
+        previousConnectionState = Connected(device)
     }
 
     private fun showDisconnected() {
-        // TODO Show snackbar with message
         updateConnectionState(false)
         setViewsEnabled(false)
+        dialogManager.loading.dismiss()
+        if (previousConnectionState is Connected)
+            showBottomMessage(getString(R.string.disconnected))
+        previousConnectionState = Disconnected
         dialogManager.loading.dismiss()
     }
 
@@ -178,15 +191,23 @@ class MainActivity : AppCompatActivity(), MainView, ColorObserver {
         mPresenter.disconnect()
         with(dialogManager.enableBT) {
             positiveActionClickListener { runBtEnabler() }
-            negativeActionClickListener { this.dismiss() }
+            negativeActionClickListener { dismiss() }
             show()
         }
     }
 
     private fun showBtNotSupported() {
         dialogManager.btNotSupported
-            .positiveActionClickListener { finish() }
-            .show()
+                .positiveActionClickListener { finish() }
+                .show()
+    }
+
+    private fun showBottomMessage(message: String) {
+        Snackbar.make(
+                container,
+                message,
+                Snackbar.LENGTH_SHORT
+        ).show()
     }
 
     private fun setViewsEnabled(enabled: Boolean) {

@@ -31,6 +31,12 @@ class DialogManager(private val context: Context) {
             .positiveAction(R.string.reconnect)
             .cancelable(true)
 
+    val pairWithDevice = SimpleDialog(context, R.style.CustomDialog)
+            .message(R.string.not_paired_with_device)
+            .title(R.string.no_devices)
+            .positiveAction(R.string.ok)
+            .cancelable(true)
+
     fun deviceSelection(devices: Array<String>, selectedDevice: (String) -> Unit): AlertDialog =
             AlertDialog.Builder(context)
                     .setTitle(R.string.available_devices_title)
