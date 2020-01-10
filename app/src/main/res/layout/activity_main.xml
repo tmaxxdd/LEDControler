@@ -94,7 +94,7 @@
                 app:layout_constraintTop_toBottomOf="@id/brightnessLabel" />
 
             <Button
-                android:id="@+id/connectionAction"
+                android:id="@+id/connectAction"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="@dimen/spacing_16"

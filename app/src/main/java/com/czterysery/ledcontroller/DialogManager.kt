@@ -31,7 +31,7 @@ class DialogManager(private val context: Context) {
             .positiveAction(R.string.reconnect)
             .cancelable(true)
 
-    val pairWithDevice = SimpleDialog(context, R.style.CustomDialog)
+    val pairWithDevice: Dialog = SimpleDialog(context, R.style.CustomDialog)
             .message(R.string.not_paired_with_device)
             .title(R.string.no_devices)
             .positiveAction(R.string.ok)

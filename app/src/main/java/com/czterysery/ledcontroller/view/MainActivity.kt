@@ -5,6 +5,7 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.graphics.Color
 import android.os.Bundle
+import android.util.Log
 import android.widget.ArrayAdapter
 import androidx.appcompat.app.AppCompatActivity
 import com.czterysery.ledcontroller.BluetoothStateBroadcastReceiver
@@ -51,6 +52,7 @@ class MainActivity : AppCompatActivity(), MainView, ColorObserver {
             Disconnected -> showDisconnected()
             is Error -> showError(state.message)
         }
+        dialogManager.loading.dismiss()
     }
 
     private var allowChangeColor = false
@@ -69,7 +71,7 @@ class MainActivity : AppCompatActivity(), MainView, ColorObserver {
             mPresenter.setBrightness(newValue)
         }
 
-        connectionAction.setOnClickListener {
+        connectAction.setOnClickListener {
             if (mPresenter.isBtEnabled()) {
                 changeConnectionStatus()
             } else {
@@ -77,20 +79,22 @@ class MainActivity : AppCompatActivity(), MainView, ColorObserver {
             }
         }
 
-        mPresenter.setBluetoothStateListener(bluetoothStateListener)
         registerReceiver(btStateReceiver, IntentFilter(BluetoothAdapter.ACTION_STATE_CHANGED))
-
-        mPresenter.setConnectionStateListener(connectionStateListener)
     }
+
+    // TODO Distinquish between start/stop vs resume/pause
 
     override fun onResume() {
         super.onResume()
         mPresenter.onAttach(this)
+        mPresenter.setBluetoothStateListener(bluetoothStateListener)
+        mPresenter.setConnectionStateListener(connectionStateListener)
     }
 
     override fun onPause() {
         mPresenter.disconnect()
         mPresenter.onDetach()
+        showReconnect()
         super.onPause()
     }
 
@@ -110,19 +114,16 @@ class MainActivity : AppCompatActivity(), MainView, ColorObserver {
 
     override fun updateConnectionState(isConnected: Boolean) {
         if (isConnected) {
-            mPresenter.sendConnectionMessage(connected = true)
-            mPresenter.loadCurrentParams()
-            connectionAction.text = getString(R.string.disconnect)
+            connectAction.text = getString(R.string.disconnect)
         } else {
-            mPresenter.sendConnectionMessage(connected = false)
-            connectionAction.text = getString(R.string.connect)
+            connectAction.text = getString(R.string.connect)
         }
     }
 
     override fun updateCurrentColor(receivedColor: Int) {
         dropdownItem?.textColor = receivedColor
         brightnessSlider.setPrimaryColor(receivedColor)
-        connectionAction.setTextColor(receivedColor)
+        connectAction.setTextColor(receivedColor)
     }
 
     // TODO Change name to updateCurrentBrightness
@@ -160,9 +161,20 @@ class MainActivity : AppCompatActivity(), MainView, ColorObserver {
         }
     }
 
+    private fun showReconnect() {
+        with(dialogManager.reconnect) {
+            positiveActionClickListener {
+                if (mPresenter.isBtEnabled()) mPresenter.connect()
+                dismiss()
+            }
+            show()
+        }
+    }
+
     private fun showConnected(device: String) {
         updateConnectionState(true)
         setViewsEnabled(true)
+
         showBottomMessage(getString(R.string.connected_with, device))
         previousConnectionState = Connected(device)
     }
@@ -170,17 +182,16 @@ class MainActivity : AppCompatActivity(), MainView, ColorObserver {
     private fun showDisconnected() {
         updateConnectionState(false)
         setViewsEnabled(false)
-        dialogManager.loading.dismiss()
+
         if (previousConnectionState is Connected)
             showBottomMessage(getString(R.string.disconnected))
+
         previousConnectionState = Disconnected
-        dialogManager.loading.dismiss()
     }
 
     private fun showError(message: String) {
-        // TODO Show snackbar with error
         setViewsEnabled(false)
-        dialogManager.loading.dismiss()
+        showBottomMessage(message)
     }
 
     private fun showBtEnabled() {
