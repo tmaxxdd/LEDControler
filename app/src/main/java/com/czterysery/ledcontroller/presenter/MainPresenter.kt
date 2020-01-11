@@ -1,13 +1,6 @@
 package com.czterysery.ledcontroller.presenter
 
-import com.czterysery.ledcontroller.data.model.BluetoothState
-import com.czterysery.ledcontroller.data.model.ConnectionState
-
 interface MainPresenter : BasePresenter {
-
-    fun setBluetoothStateListener(listener: (state: BluetoothState) -> Unit)
-
-    fun setConnectionStateListener(listener: (state: ConnectionState) -> Unit)
 
     fun connect()
 
@@ -18,11 +11,6 @@ interface MainPresenter : BasePresenter {
     fun setBrightness(value: Int)
 
     fun setAnimation(anim: String)
-
-    fun sendConnectionMessage(connected: Boolean)
-
-    // TODO Replace it with getConfiguration: Configuration()
-    fun loadCurrentParams()
 
     fun isConnected(): Boolean
 

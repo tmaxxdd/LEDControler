@@ -1,11 +1,11 @@
 package com.czterysery.ledcontroller.view
 
 import android.bluetooth.BluetoothAdapter
+import android.content.DialogInterface
 import android.content.Intent
 import android.content.IntentFilter
 import android.graphics.Color
 import android.os.Bundle
-import android.util.Log
 import android.widget.ArrayAdapter
 import androidx.appcompat.app.AppCompatActivity
 import com.czterysery.ledcontroller.BluetoothStateBroadcastReceiver
@@ -36,25 +36,6 @@ class MainActivity : AppCompatActivity(), MainView, ColorObserver {
             SocketManagerImpl()
     )
 
-    private val bluetoothStateListener: (state: BluetoothState) -> Unit = { state: BluetoothState ->
-        when (state) {
-            Enabled -> showBtEnabled()
-            Disabled -> showBtDisabled()
-            NotSupported -> showBtNotSupported()
-            None -> // When app starts, BT is in previous state. Check state manually.
-                if (mPresenter.isBtEnabled()) showBtEnabled() else showBtDisabled()
-        }
-    }
-
-    private val connectionStateListener: (state: ConnectionState) -> Unit = { state ->
-        when (state) {
-            is Connected -> showConnected(state.device)
-            Disconnected -> showDisconnected()
-            is Error -> showError(state.message)
-        }
-        dialogManager.loading.dismiss()
-    }
-
     private var allowChangeColor = false
     private var previousConnectionState: ConnectionState = Disconnected
 
@@ -72,30 +53,22 @@ class MainActivity : AppCompatActivity(), MainView, ColorObserver {
         }
 
         connectAction.setOnClickListener {
-            if (mPresenter.isBtEnabled()) {
-                changeConnectionStatus()
-            } else {
-                showBtDisabled()
-            }
+            changeConnectionStatus()
         }
 
         registerReceiver(btStateReceiver, IntentFilter(BluetoothAdapter.ACTION_STATE_CHANGED))
     }
 
-    // TODO Distinquish between start/stop vs resume/pause
-
-    override fun onResume() {
-        super.onResume()
+    override fun onStart() {
+        super.onStart()
         mPresenter.onAttach(this)
-        mPresenter.setBluetoothStateListener(bluetoothStateListener)
-        mPresenter.setConnectionStateListener(connectionStateListener)
     }
 
-    override fun onPause() {
+    override fun onStop() {
         mPresenter.disconnect()
         mPresenter.onDetach()
         showReconnect()
-        super.onPause()
+        super.onStop()
     }
 
     override fun onDestroy() {
@@ -112,10 +85,18 @@ class MainActivity : AppCompatActivity(), MainView, ColorObserver {
         }
     }
 
-    override fun updateConnectionState(isConnected: Boolean) {
+    private fun updateConnectionViewState(isConnected: Boolean) {
         if (isConnected) {
+            colorPicker.alpha = 1f
+            animationDropdown.isEnabled = true
+            brightnessSlider.isEnabled = true
+            allowChangeColor = true
             connectAction.text = getString(R.string.disconnect)
         } else {
+            colorPicker.alpha = 0.5f
+            animationDropdown.isEnabled = false
+            brightnessSlider.isEnabled = false
+            allowChangeColor = false
             connectAction.text = getString(R.string.connect)
         }
     }
@@ -145,11 +126,14 @@ class MainActivity : AppCompatActivity(), MainView, ColorObserver {
         toast(text)
     }
 
-    override fun showLoading() {
-        dialogManager.loading.show()
+    override fun showLoading(shouldShow: Boolean) {
+        if (shouldShow)
+            dialogManager.loading.show()
+        else
+            dialogManager.loading.dismiss()
     }
 
-    override fun showDevicesList(devices: Array<String>, selectedDevice: (String) -> Unit) {
+    override fun showDevicesList(devices: Array<String>, selectedDevice: (DialogInterface, String) -> Unit) {
         dialogManager.deviceSelection(devices, selectedDevice)
                 .show()
     }
@@ -159,6 +143,46 @@ class MainActivity : AppCompatActivity(), MainView, ColorObserver {
             positiveActionClickListener { dismiss() }
             show()
         }
+    }
+
+    override fun showConnected(device: String) {
+        updateConnectionViewState(isConnected = true)
+
+        showBottomMessage(getString(R.string.connected_with, device))
+        previousConnectionState = Connected(device)
+    }
+
+    override fun showDisconnected() {
+        updateConnectionViewState(isConnected = false)
+
+        if (previousConnectionState is Connected)
+            showBottomMessage(getString(R.string.disconnected))
+
+        previousConnectionState = Disconnected
+    }
+
+    override fun showError(message: String) {
+        updateConnectionViewState(isConnected = false)
+        showBottomMessage(message)
+    }
+
+    override fun showBtEnabled() {
+        dialogManager.enableBT.dismiss()
+    }
+
+    override fun showBtDisabled() {
+        if (mPresenter.isConnected()) mPresenter.disconnect()
+        with(dialogManager.enableBT) {
+            positiveActionClickListener { runBtEnabler() }
+            negativeActionClickListener { dismiss() }
+            show()
+        }
+    }
+
+    override fun showBtNotSupported() {
+        dialogManager.btNotSupported
+                .positiveActionClickListener { finish() }
+                .show()
     }
 
     private fun showReconnect() {
@@ -171,68 +195,8 @@ class MainActivity : AppCompatActivity(), MainView, ColorObserver {
         }
     }
 
-    private fun showConnected(device: String) {
-        updateConnectionState(true)
-        setViewsEnabled(true)
-
-        showBottomMessage(getString(R.string.connected_with, device))
-        previousConnectionState = Connected(device)
-    }
-
-    private fun showDisconnected() {
-        updateConnectionState(false)
-        setViewsEnabled(false)
-
-        if (previousConnectionState is Connected)
-            showBottomMessage(getString(R.string.disconnected))
-
-        previousConnectionState = Disconnected
-    }
-
-    private fun showError(message: String) {
-        setViewsEnabled(false)
-        showBottomMessage(message)
-    }
-
-    private fun showBtEnabled() {
-        dialogManager.enableBT.dismiss()
-    }
-
-    private fun showBtDisabled() {
-        mPresenter.disconnect()
-        with(dialogManager.enableBT) {
-            positiveActionClickListener { runBtEnabler() }
-            negativeActionClickListener { dismiss() }
-            show()
-        }
-    }
-
-    private fun showBtNotSupported() {
-        dialogManager.btNotSupported
-                .positiveActionClickListener { finish() }
-                .show()
-    }
-
     private fun showBottomMessage(message: String) {
-        Snackbar.make(
-                container,
-                message,
-                Snackbar.LENGTH_SHORT
-        ).show()
-    }
-
-    private fun setViewsEnabled(enabled: Boolean) {
-        if (enabled) {
-            colorPicker.alpha = 1f
-            animationDropdown.isEnabled = true
-            brightnessSlider.isEnabled = true
-            allowChangeColor = true
-        } else {
-            colorPicker.alpha = 0.5f
-            animationDropdown.isEnabled = false
-            brightnessSlider.isEnabled = false
-            allowChangeColor = false
-        }
+        Snackbar.make(container, message, Snackbar.LENGTH_SHORT).show()
     }
 
     private fun runBtEnabler() {

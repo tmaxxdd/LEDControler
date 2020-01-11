@@ -20,6 +20,16 @@ class MainPresenterImpl(
 ) : MainPresenter {
     private val TAG = "MainPresenter"
 
+    private val bluetoothStateListener: (state: BluetoothState) -> Unit =
+            { state: BluetoothState ->
+                onBtStateChanged(state)
+            }
+
+    private val connectionStateListener: (state: ConnectionState) -> Unit =
+            { state ->
+                onConnectionStateChanged(state)
+            }
+
     private var btStateDisposable: Disposable? = null
     private var connectionStateDisposable: Disposable? = null
 
@@ -29,6 +39,7 @@ class MainPresenterImpl(
 
     override fun onAttach(view: MainView) {
         this.view = view
+        registerListeners()
     }
 
     override fun onDetach() {
@@ -36,40 +47,11 @@ class MainPresenterImpl(
         disposeAll()
     }
 
-    override fun setBluetoothStateListener(listener: (state: BluetoothState) -> Unit) {
-        btStateDisposable?.dispose()
-        btStateDisposable = bluetoothStateBroadcastReceiver.btState
-                .subscribeOn(Schedulers.io())
-                .observeOn(AndroidSchedulers.mainThread())
-                .subscribe(
-                        { state -> checkIfBtSupportedAndReturnState(listener, state) },
-                        { error -> Log.e(TAG, "Error during observing BT state: $error") }
-                )
-    }
-
-    override fun setConnectionStateListener(listener: (state: ConnectionState) -> Unit) {
-        connectionStateDisposable?.dispose()
-        connectionStateDisposable = socketManager.connectionState
-                .subscribeOn(Schedulers.io())
-                .observeOn(AndroidSchedulers.mainThread())
-                .subscribe(
-                        { state -> listener(state) },
-                        { error -> Log.e(TAG, "Error during observing connection state: $error") }
-                )
-    }
-
     override fun connect() {
-        view?.let {
-            val devices = btController.getDevices().keys.toTypedArray()
-            if (devices.isNotEmpty()) {
-                it.showDevicesList(devices) { deviceName ->
-                    // On selected device
-                    it.showLoading()
-                    tryToConnectWithDevice(deviceName)
-                }
-            } else {
-                it.showPairWithDevice()
-            }
+        if (isBtEnabled()) {
+            showDevicesAndTryConnect()
+        } else {
+            view?.showBtDisabled()
         }
     }
 
@@ -101,30 +83,86 @@ class MainPresenterImpl(
         }
     }
 
-    override fun sendConnectionMessage(connected: Boolean) {
+    /* Get the current params from an ESP32 */
+    // TODO Implement this and rename
+    private fun loadCurrentParams() {
+//        getColor()
+//        getBrightness()
+    }
+
+    override fun isConnected() = socketManager.connectionState.value is Connected
+
+    override fun isBtEnabled(): Boolean = btController.isEnabled
+
+    private fun subscribeConnectionStateListener(listener: (state: ConnectionState) -> Unit) {
+        connectionStateDisposable?.dispose()
+        connectionStateDisposable = socketManager.connectionState
+                .subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(
+                        { state -> listener(state) },
+                        { error -> Log.e(TAG, "Error during observing connection state: $error") }
+                )
+    }
+
+    private fun subscribeBluetoothStateListener(listener: (state: BluetoothState) -> Unit) {
+        btStateDisposable?.dispose()
+        btStateDisposable = bluetoothStateBroadcastReceiver.btState
+                .subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(
+                        { state -> checkIfBtSupportedAndReturnState(listener, state) },
+                        { error -> Log.e(TAG, "Error during observing BT state: $error") }
+                )
+    }
+
+    private fun onConnectionStateChanged(state: ConnectionState) {
+        when (state) {
+            is Connected -> tryToGetConfiguration(state.device)
+            Disconnected -> view?.showDisconnected()
+            is Error -> view?.showError(state.message)
+        }
+        view?.showLoading(shouldShow = false)
+    }
+
+    private fun onBtStateChanged(state: BluetoothState) {
+        when (state) {
+            Enabled -> view?.showBtEnabled()
+            Disabled -> view?.showBtDisabled()
+            NotSupported -> view?.showBtNotSupported()
+            None -> // When app starts, BT is in previous state. Check state manually.
+                if (isBtEnabled()) view?.showBtEnabled() else view?.showBtDisabled()
+        }
+    }
+
+    private fun sendConnectionMessage(connected: Boolean) {
         if (connected)
             socketManager.writeMessage(Messages.CONNECTED + "\r\n")
         else
             socketManager.writeMessage(Messages.DISCONNECTED + "\r\n")
     }
 
-    /* Get the current params from an ESP32 */
-    // TODO Implement this
-    override fun loadCurrentParams() {
-//        getColor()
-//        getBrightness()
-    }
-
-    override fun isConnected() =
-            socketManager.connectionState.value is Connected
-
-    override fun isBtEnabled(): Boolean = btController.isEnabled
-
     private fun checkIfBtSupportedAndReturnState(listener: (state: BluetoothState) -> Unit, state: BluetoothState) {
         if (btController.isSupported.not())
             listener(NotSupported)
         else
             listener(state)
+    }
+
+    private fun showDevicesAndTryConnect() {
+        view?.let {
+            val devices = btController.getDevices().keys.toTypedArray()
+            if (devices.isNotEmpty()) {
+                it.showDevicesList(devices) { dialog, deviceName ->
+                    // On selected device
+                    it.showLoading()
+                    dialog.dismiss()
+                    tryToConnectWithDevice(deviceName)
+                }
+            } else {
+                it.showPairWithDevice()
+            }
+        }
     }
 
     private fun tryToConnectWithDevice(deviceName: String) {
@@ -136,11 +174,24 @@ class MainPresenterImpl(
                 socketManager.connectionState.onNext(Error("Cannot find the selected device"))
 
             else ->
+                // TODO To stream
                 socketManager.connect(
                         btController.getDeviceAddress(deviceName) as String,
                         btController.adapter as BluetoothAdapter
                 )
         }
+    }
+
+    private fun tryToGetConfiguration(device: String) {
+        // TODO `showLoading`
+        // TODO Here create get configuartion with 5sec or less timeout
+        // TODO `hideLoading`
+        view?.showConnected(device)
+    }
+
+    private fun registerListeners() {
+        subscribeBluetoothStateListener(bluetoothStateListener)
+        subscribeConnectionStateListener(connectionStateListener)
     }
 
     private fun disposeAll() {

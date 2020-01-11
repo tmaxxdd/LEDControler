@@ -2,6 +2,8 @@ package com.czterysery.ledcontroller
 
 import android.app.AlertDialog
 import android.content.Context
+import android.content.DialogInterface
+import android.view.View
 import com.rey.material.app.Dialog
 import com.rey.material.app.SimpleDialog
 
@@ -37,14 +39,13 @@ class DialogManager(private val context: Context) {
             .positiveAction(R.string.ok)
             .cancelable(true)
 
-    fun deviceSelection(devices: Array<String>, selectedDevice: (String) -> Unit): AlertDialog =
+    fun deviceSelection(devices: Array<String>, selectedDevice: (DialogInterface, String) -> Unit): AlertDialog =
             AlertDialog.Builder(context)
                     .setTitle(R.string.available_devices_title)
                     .setItems(devices) { dialog, selected: Int ->
-                        selectedDevice(devices[selected])
+                        selectedDevice(dialog, devices[selected])
                         dialog.dismiss()
                     }.create()
-
 
     fun hideAll() {
         btNotSupported.dismiss()
