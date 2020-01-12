@@ -10,6 +10,7 @@ import com.czterysery.ledcontroller.data.model.*
 import com.czterysery.ledcontroller.data.socket.SocketManager
 import com.czterysery.ledcontroller.view.MainView
 import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers
+import io.reactivex.rxjava3.core.Completable
 import io.reactivex.rxjava3.disposables.Disposable
 import io.reactivex.rxjava3.schedulers.Schedulers
 
@@ -153,9 +154,9 @@ class MainPresenterImpl(
         view?.let {
             val devices = btController.getDevices().keys.toTypedArray()
             if (devices.isNotEmpty()) {
+                it.showLoading()
                 it.showDevicesList(devices) { dialog, deviceName ->
                     // On selected device
-                    it.showLoading()
                     dialog.dismiss()
                     tryToConnectWithDevice(deviceName)
                 }
@@ -174,11 +175,18 @@ class MainPresenterImpl(
                 socketManager.connectionState.onNext(Error("Cannot find the selected device"))
 
             else ->
-                // TODO To stream
-                socketManager.connect(
-                        btController.getDeviceAddress(deviceName) as String,
-                        btController.adapter as BluetoothAdapter
-                )
+                Completable.fromAction {
+                    socketManager.connect(
+                            btController.getDeviceAddress(deviceName) as String,
+                            btController.adapter as BluetoothAdapter)
+                }.subscribeOn(Schedulers.io())
+                        .subscribe(
+                                { sendConnectionMessage(true) },
+                                { error ->
+                                    Log.e(TAG, "Couldn't connect to device: $error")
+                                    view?.showLoading(shouldShow = false)
+                                }
+                        )
         }
     }
 
