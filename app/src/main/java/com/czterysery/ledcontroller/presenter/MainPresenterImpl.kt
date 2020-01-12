@@ -119,7 +119,10 @@ class MainPresenterImpl(
 
     private fun onConnectionStateChanged(state: ConnectionState) {
         when (state) {
-            is Connected -> tryToGetConfiguration(state.device)
+            is Connected -> {
+                sendConnectionMessage(connected = true)
+                tryToGetConfiguration(state.device)
+            }
             Disconnected -> view?.showDisconnected()
             is Error -> view?.showError(state.message)
         }

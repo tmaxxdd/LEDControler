@@ -3,7 +3,6 @@ package com.czterysery.ledcontroller
 import android.app.AlertDialog
 import android.content.Context
 import android.content.DialogInterface
-import android.view.View
 import com.rey.material.app.Dialog
 import com.rey.material.app.SimpleDialog
 

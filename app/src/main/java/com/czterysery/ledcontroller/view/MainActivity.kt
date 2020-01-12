@@ -26,8 +26,6 @@ import top.defaults.colorpicker.ColorObserver
 const val REQUEST_ENABLE_BT = 1
 
 class MainActivity : AppCompatActivity(), MainView, ColorObserver {
-    private val TAG = "LEDController"
-
     private lateinit var dialogManager: DialogManager
     private val btStateReceiver = BluetoothStateBroadcastReceiver()
     private val mPresenter: MainPresenter = MainPresenterImpl(
