@@ -183,22 +183,16 @@ class MainPresenterImpl(
                 socketManager.connectionState.onNext(Error("Cannot find the selected device"))
 
             else ->
-                Completable.fromAction {
-                    socketManager.connect(
-                            btController.getDeviceAddress(deviceName) as String,
-                            btController.adapter as BluetoothAdapter)
-                }
-                        .timeout(5, TimeUnit.SECONDS)
-                        .subscribeOn(Schedulers.io())
-                        .subscribe(
-                                { sendConnectionMessage(connected = true) },
-                                { error ->
-                                    Log.e(TAG, "Couldn't connect to device: $error")
-                                    view?.showLoading(shouldShow = false)
-                                    if (error is TimeoutException)
-                                        socketManager.connectionState.onNext(Error("Cannot connect. Timeout!"))
-                                }
-                        )
+                socketManager.connect(
+                        btController.getDeviceAddress(deviceName) as String,
+                        btController.adapter as BluetoothAdapter
+                ).subscribeOn(Schedulers.io()).subscribe(
+                        { sendConnectionMessage(connected = true) },
+                        { error ->
+                            Log.e(TAG, "Couldn't connect to device: $error")
+                            view?.showLoading(shouldShow = false)
+                        }
+                )
         }
     }
 

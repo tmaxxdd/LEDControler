@@ -13,6 +13,8 @@ import com.czterysery.ledcontroller.data.model.Error
 import io.reactivex.rxjava3.core.Completable
 import io.reactivex.rxjava3.subjects.BehaviorSubject
 import java.io.IOException
+import java.util.concurrent.TimeUnit
+import java.util.concurrent.TimeoutException
 
 class SocketManagerImpl : SocketManager {
     private val TAG = "SocketManager"
@@ -25,10 +27,14 @@ class SocketManagerImpl : SocketManager {
     override var connectionState: BehaviorSubject<ConnectionState> =
             BehaviorSubject.createDefault(Disconnected)
 
-    override fun connect(address: String, btAdapter: BluetoothAdapter) {
-        val device = btAdapter.getRemoteDevice(address)
-        ConnectThread(btAdapter, device).run()
-    }
+    override fun connect(address: String, btAdapter: BluetoothAdapter): Completable =
+            Completable.fromCallable {
+                val device = btAdapter.getRemoteDevice(address)
+                ConnectThread(btAdapter, device).run()
+            }.timeout(5, TimeUnit.SECONDS).doOnError { error ->
+                if (error is TimeoutException)
+                    connectionState.onNext(Error("Cannot connect. Timeout!"))
+            }
 
     override fun disconnect() {
         btSocket?.let {
@@ -96,7 +102,6 @@ class SocketManagerImpl : SocketManager {
                 if (socket.isConnected) {
                     connectionState.onNext(Connected(device.name))
                 } else {
-                    connectionState.onNext(Error("Connection Failed. Is it a SPP Bluetooth? Try again."))
                     cancel()
                 }
 
