@@ -169,7 +169,6 @@ class MainActivity : AppCompatActivity(), MainView, ColorObserver {
     }
 
     override fun showBtDisabled() {
-        if (mPresenter.isConnected()) mPresenter.disconnect()
         with(dialogManager.enableBT) {
             positiveActionClickListener { runBtEnabler() }
             negativeActionClickListener { dismiss() }

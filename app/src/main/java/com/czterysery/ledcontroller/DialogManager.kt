@@ -44,7 +44,8 @@ class DialogManager(private val context: Context) {
                     .setItems(devices) { dialog, selected: Int ->
                         selectedDevice(dialog, devices[selected])
                         dialog.dismiss()
-                    }.create()
+                    }.setCancelable(false)
+                    .create()
 
     fun hideAll() {
         btNotSupported.dismiss()

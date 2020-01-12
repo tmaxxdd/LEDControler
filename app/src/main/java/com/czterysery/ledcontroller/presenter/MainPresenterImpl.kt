@@ -13,6 +13,8 @@ import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers
 import io.reactivex.rxjava3.core.Completable
 import io.reactivex.rxjava3.disposables.Disposable
 import io.reactivex.rxjava3.schedulers.Schedulers
+import java.util.concurrent.TimeUnit
+import java.util.concurrent.TimeoutException
 
 class MainPresenterImpl(
         private val bluetoothStateBroadcastReceiver: BluetoothStateBroadcastReceiver,
@@ -132,7 +134,10 @@ class MainPresenterImpl(
     private fun onBtStateChanged(state: BluetoothState) {
         when (state) {
             Enabled -> view?.showBtEnabled()
-            Disabled -> view?.showBtDisabled()
+            Disabled -> {
+                socketManager.connectionState.onNext(Disconnected)
+                view?.showBtDisabled()
+            }
             NotSupported -> view?.showBtNotSupported()
             None -> // When app starts, BT is in previous state. Check state manually.
                 if (isBtEnabled()) view?.showBtEnabled() else view?.showBtDisabled()
@@ -182,12 +187,16 @@ class MainPresenterImpl(
                     socketManager.connect(
                             btController.getDeviceAddress(deviceName) as String,
                             btController.adapter as BluetoothAdapter)
-                }.subscribeOn(Schedulers.io())
+                }
+                        .timeout(5, TimeUnit.SECONDS)
+                        .subscribeOn(Schedulers.io())
                         .subscribe(
                                 { sendConnectionMessage(connected = true) },
                                 { error ->
                                     Log.e(TAG, "Couldn't connect to device: $error")
                                     view?.showLoading(shouldShow = false)
+                                    if (error is TimeoutException)
+                                        socketManager.connectionState.onNext(Error("Cannot connect. Timeout!"))
                                 }
                         )
         }
