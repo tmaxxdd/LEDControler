@@ -120,8 +120,8 @@ class MainPresenterImpl(
     private fun onConnectionStateChanged(state: ConnectionState) {
         when (state) {
             is Connected -> {
-                sendConnectionMessage(connected = true)
-                tryToGetConfiguration(state.device)
+                view?.showConnected(state.device)
+                tryToGetConfiguration()
             }
             Disconnected -> view?.showDisconnected()
             is Error -> view?.showError(state.message)
@@ -184,7 +184,7 @@ class MainPresenterImpl(
                             btController.adapter as BluetoothAdapter)
                 }.subscribeOn(Schedulers.io())
                         .subscribe(
-                                { sendConnectionMessage(true) },
+                                { sendConnectionMessage(connected = true) },
                                 { error ->
                                     Log.e(TAG, "Couldn't connect to device: $error")
                                     view?.showLoading(shouldShow = false)
@@ -193,11 +193,10 @@ class MainPresenterImpl(
         }
     }
 
-    private fun tryToGetConfiguration(device: String) {
+    private fun tryToGetConfiguration() {
         // TODO `showLoading`
         // TODO Here create get configuartion with 5sec or less timeout
         // TODO `hideLoading`
-        view?.showConnected(device)
     }
 
     private fun registerListeners() {
