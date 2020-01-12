@@ -16,6 +16,11 @@
     <string name="not_connected_to_device">You are not connected to the device. Maybe you want to reconnect?</string>
     <string name="disconnected">Disconnected</string>
     <string name="reconnect">Reconnect</string>
+    <string name="available_devices_title">Available devices</string>
+    <string name="connected_with">Connected with %s</string>
+    <string name="not_paired_with_device">You haven\'t paired with your LED receiver. Go to Bluetooth settings and select it from the available devices.</string>
+    <string name="no_devices">No devices</string>
+    <string name="ok">Ok</string>
     <string-array name="animations">
         <item>None</item>
         <item>Pulse</item>
