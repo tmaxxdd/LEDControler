@@ -2,15 +2,18 @@ package com.czterysery.ledcontroller.presenter
 
 import android.bluetooth.BluetoothAdapter
 import android.os.Handler
+import android.provider.Settings.Global.getString
 import android.util.Log
 import com.czterysery.ledcontroller.BluetoothStateBroadcastReceiver
 import com.czterysery.ledcontroller.Messages
+import com.czterysery.ledcontroller.R
 import com.czterysery.ledcontroller.data.bluetooth.BluetoothController
 import com.czterysery.ledcontroller.data.model.*
 import com.czterysery.ledcontroller.data.socket.SocketManager
 import com.czterysery.ledcontroller.view.MainView
 import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers
 import io.reactivex.rxjava3.core.Completable
+import io.reactivex.rxjava3.disposables.CompositeDisposable
 import io.reactivex.rxjava3.disposables.Disposable
 import io.reactivex.rxjava3.schedulers.Schedulers
 import java.util.concurrent.TimeUnit
@@ -35,6 +38,7 @@ class MainPresenterImpl(
 
     private var btStateDisposable: Disposable? = null
     private var connectionStateDisposable: Disposable? = null
+    private var messagePublisherDisposable: Disposable? = null
 
     // TODO Remove
     private var colorChangeCounter = 3
@@ -61,6 +65,7 @@ class MainPresenterImpl(
     override fun disconnect() {
         sendConnectionMessage(connected = false)
         socketManager.disconnect()
+                .subscribe()
     }
 
     // TODO Refactor
@@ -119,14 +124,27 @@ class MainPresenterImpl(
                 )
     }
 
+    private fun subscribeMessagePublisher() {
+        messagePublisherDisposable?.dispose()
+        messagePublisherDisposable = socketManager.messagePublisher
+                .subscribeOn(Schedulers.io())
+                .subscribe(
+                        { message -> parseMessage(message) },
+                        { view?.showError(R.string.error_receiving_message) }
+                )
+    }
+
     private fun onConnectionStateChanged(state: ConnectionState) {
         when (state) {
             is Connected -> {
                 view?.showConnected(state.device)
+                subscribeMessagePublisher()
                 tryToGetConfiguration()
             }
-            Disconnected -> view?.showDisconnected()
-            is Error -> view?.showError(state.message)
+            Disconnected -> {
+                view?.showDisconnected()
+            }
+            is Error -> view?.showError(state.messageId)
         }
         view?.showLoading(shouldShow = false)
     }
@@ -177,10 +195,10 @@ class MainPresenterImpl(
     private fun tryToConnectWithDevice(deviceName: String) {
         when {
             btController.adapter == null ->
-                socketManager.connectionState.onNext(Error("Bluetooth is not available"))
+                socketManager.connectionState.onNext(Error(R.string.error_bt_not_available))
 
             btController.getDeviceAddress(deviceName) == null ->
-                socketManager.connectionState.onNext(Error("Cannot find the selected device"))
+                socketManager.connectionState.onNext(Error(R.string.error_cannot_find_device))
 
             else ->
                 socketManager.connect(
@@ -188,10 +206,7 @@ class MainPresenterImpl(
                         btController.adapter as BluetoothAdapter
                 ).subscribeOn(Schedulers.io()).subscribe(
                         { sendConnectionMessage(connected = true) },
-                        { error ->
-                            Log.e(TAG, "Couldn't connect to device: $error")
-                            view?.showLoading(shouldShow = false)
-                        }
+                        { view?.showLoading(shouldShow = false) }
                 )
         }
     }
@@ -202,12 +217,17 @@ class MainPresenterImpl(
         // TODO `hideLoading`
     }
 
+    private fun parseMessage(message: String) {
+        // TODO Here do sth useful with received message
+    }
+
     private fun registerListeners() {
         subscribeBluetoothStateListener(bluetoothStateListener)
         subscribeConnectionStateListener(connectionStateListener)
     }
 
     private fun disposeAll() {
+        messagePublisherDisposable?.dispose()
         btStateDisposable?.dispose()
         connectionStateDisposable?.dispose()
     }
