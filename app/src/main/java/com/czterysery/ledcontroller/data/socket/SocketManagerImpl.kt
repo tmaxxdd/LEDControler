@@ -12,12 +12,25 @@ import com.czterysery.ledcontroller.data.model.ConnectionState
 import com.czterysery.ledcontroller.data.model.Disconnected
 import com.czterysery.ledcontroller.data.model.Error
 import io.reactivex.rxjava3.core.Completable
+import io.reactivex.rxjava3.core.Flowable
 import io.reactivex.rxjava3.core.Observable
+import io.reactivex.rxjava3.functions.Consumer
+import io.reactivex.rxjava3.functions.Function
+import io.reactivex.rxjava3.functions.Supplier
 import io.reactivex.rxjava3.subjects.BehaviorSubject
 import io.reactivex.rxjava3.subjects.PublishSubject
+import org.reactivestreams.Publisher
 import java.io.IOException
+import java.io.InputStream
+import java.io.OutputStream
+import java.util.concurrent.Callable
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.TimeoutException
+
+fun InputStream?.isAvailable() = when (this) {
+    null -> false
+    else -> this.available() > 0
+}
 
 class SocketManagerImpl : SocketManager {
     private val TAG = "SocketManager"
@@ -55,7 +68,9 @@ class SocketManagerImpl : SocketManager {
 
     override fun writeMessage(message: String): Completable =
             Completable.fromCallable {
-                btSocket?.outputStream?.write(message.toByteArray())
+                btSocket?.outputStream?.use {
+                    it.write(message.toByteArray())
+                }
             }.doOnError { error -> Log.e(TAG, "Couldn't write message to the socket: $error") }
 
 
@@ -77,9 +92,31 @@ class SocketManagerImpl : SocketManager {
 //    }
 
     private fun observeSerialPort() {
-        btSocket?.inputStream?.takeIf { stream ->
-            stream.available() > 0
+
+        // TODO Consider using kotlin's 'use' or Flowable with using()
+
+        Flowable.using(
+                Supplier<String> { readStream(btSocket?.inputStream) },
+                Function<String, Publisher<String>> { d -> return@Function Publisher<String> { d } },
+                Consumer<String> { d -> d is String }
+        ).subscribe {  }
+    }
+
+    private fun readStream(stream: InputStream?): String {
+        var output = ""
+        when (stream) {
+            null -> return output
+            else ->
+                // Collect the data from stream
+                stream.use { stream ->
+                    // `use` will always close the stream
+                    while (stream.isAvailable()) {
+                        stream.let { output += it.read().toChar() }
+                    }
+                }
         }
+
+        return output
     }
 
     private inner class ConnectThread(private val adapter: BluetoothAdapter, private val device: BluetoothDevice) : Thread() {
