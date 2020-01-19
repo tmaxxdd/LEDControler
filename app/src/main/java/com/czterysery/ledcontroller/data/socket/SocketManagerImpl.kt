@@ -17,6 +17,7 @@ import io.reactivex.rxjava3.core.Observable
 import io.reactivex.rxjava3.functions.Consumer
 import io.reactivex.rxjava3.functions.Function
 import io.reactivex.rxjava3.functions.Supplier
+import io.reactivex.rxjava3.schedulers.Schedulers
 import io.reactivex.rxjava3.subjects.BehaviorSubject
 import io.reactivex.rxjava3.subjects.PublishSubject
 import org.reactivestreams.Publisher
@@ -26,6 +27,7 @@ import java.io.OutputStream
 import java.util.concurrent.Callable
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.TimeoutException
+import java.util.stream.IntStream
 
 fun InputStream?.isAvailable() = when (this) {
     null -> false
@@ -34,7 +36,7 @@ fun InputStream?.isAvailable() = when (this) {
 
 class SocketManagerImpl : SocketManager {
     private val TAG = "SocketManager"
-    private val mmBuffer: ByteArray = ByteArray(1024) // mmBuffer store for the stream
+    //    private val mmBuffer: ByteArray = ByteArray(1024) // mmBuffer store for the stream
     private var btSocket: BluetoothSocket? = null
 
     override var connectionState: BehaviorSubject<ConnectionState> =
@@ -73,34 +75,18 @@ class SocketManagerImpl : SocketManager {
                 }
             }.doOnError { error -> Log.e(TAG, "Couldn't write message to the socket: $error") }
 
-
-//        var len = 0
-//        if (btSocket != null) {
-//            try {
-//                len = btSocket!!.inputStream.available()
-//                while (btSocket!!.inputStream.available() > 0) {
-//                    btSocket!!.inputStream.read(mmBuffer)
-//                    Log.d(TAG, "Message = ${String(mmBuffer, 0, len)}")
-//                    Log.d(TAG, "Bytes to read = ${btSocket!!.inputStream.available()}")
-//                }
-//                return String(mmBuffer, 0, len)
-//            } catch (e: IOException) {
-//                Log.d(TAG, "Cannot read a message")
-//            }
-//        }
-//        return ""
-//    }
-
     private fun observeSerialPort() {
-
-        // TODO Consider using kotlin's 'use' or Flowable with using()
-
-        Flowable.using(
-                Supplier<String> { readStream(btSocket?.inputStream) },
-                Function<String, Publisher<String>> { d -> return@Function Publisher<String> { d } },
-                Consumer<String> { d -> d is String }
-        ).subscribe {  }
+        streamObserver()
+                .subscribeOn(Schedulers.io())
+                .subscribe(
+                        { message -> messagePublisher.onNext(message) },
+                        { error -> Log.e(TAG, "Cannot read a message: $error") }
+                )
     }
+
+    private fun streamObserver(): Observable<String> =
+            Observable.interval(500, TimeUnit.MILLISECONDS)
+                    .map { readStream(btSocket?.inputStream) }
 
     private fun readStream(stream: InputStream?): String {
         var output = ""
@@ -111,11 +97,13 @@ class SocketManagerImpl : SocketManager {
                 stream.use { stream ->
                     // `use` will always close the stream
                     while (stream.isAvailable()) {
+                        Log.d(TAG, "Reading...")
                         stream.let { output += it.read().toChar() }
                     }
                 }
         }
 
+        Log.d(TAG, "Received message: $output")
         return output
     }
 

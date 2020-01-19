@@ -2,7 +2,6 @@ package com.czterysery.ledcontroller.presenter
 
 import android.bluetooth.BluetoothAdapter
 import android.os.Handler
-import android.provider.Settings.Global.getString
 import android.util.Log
 import com.czterysery.ledcontroller.BluetoothStateBroadcastReceiver
 import com.czterysery.ledcontroller.Messages
@@ -12,12 +11,8 @@ import com.czterysery.ledcontroller.data.model.*
 import com.czterysery.ledcontroller.data.socket.SocketManager
 import com.czterysery.ledcontroller.view.MainView
 import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers
-import io.reactivex.rxjava3.core.Completable
-import io.reactivex.rxjava3.disposables.CompositeDisposable
 import io.reactivex.rxjava3.disposables.Disposable
 import io.reactivex.rxjava3.schedulers.Schedulers
-import java.util.concurrent.TimeUnit
-import java.util.concurrent.TimeoutException
 
 class MainPresenterImpl(
         private val bluetoothStateBroadcastReceiver: BluetoothStateBroadcastReceiver,
@@ -218,7 +213,7 @@ class MainPresenterImpl(
     }
 
     private fun parseMessage(message: String) {
-        // TODO Here do sth useful with received message
+        Log.d(TAG, "Message = $message")
     }
 
     private fun registerListeners() {
