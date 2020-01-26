@@ -15,6 +15,7 @@ import io.reactivex.rxjava3.core.Completable
 import io.reactivex.rxjava3.disposables.Disposable
 import io.reactivex.rxjava3.schedulers.Schedulers
 import java.util.*
+import java.util.concurrent.TimeUnit
 
 fun doNothing(): () -> Unit = {}
 
@@ -208,7 +209,7 @@ class MainPresenterImpl(
         view?.showLoading()
         Completable.fromCallable {
             writeMessage(Messages.GET_CONFIGURATION)
-        }
+        }.andThen(waitForResponse()).timeout(1, TimeUnit.SECONDS)
         // TODO Wait for receiving a message
     }
 
@@ -218,6 +219,10 @@ class MainPresenterImpl(
             // TODO Parse received configuration
         }
     }
+
+    private fun waitForResponse(): Completable =
+            socketManager.messagePublisher
+                    .takeUntil {it -> }
 
     private fun registerListeners() {
         subscribeBluetoothStateListener(bluetoothStateListener)
