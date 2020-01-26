@@ -6,38 +6,33 @@ import android.bluetooth.BluetoothSocket
 import android.util.Log
 import com.czterysery.ledcontroller.Constants
 import com.czterysery.ledcontroller.R
-import com.czterysery.ledcontroller.data.bluetooth.BluetoothController
 import com.czterysery.ledcontroller.data.model.Connected
 import com.czterysery.ledcontroller.data.model.ConnectionState
 import com.czterysery.ledcontroller.data.model.Disconnected
 import com.czterysery.ledcontroller.data.model.Error
 import io.reactivex.rxjava3.core.Completable
-import io.reactivex.rxjava3.core.Flowable
 import io.reactivex.rxjava3.core.Observable
-import io.reactivex.rxjava3.functions.Consumer
-import io.reactivex.rxjava3.functions.Function
-import io.reactivex.rxjava3.functions.Supplier
+import io.reactivex.rxjava3.disposables.Disposable
 import io.reactivex.rxjava3.schedulers.Schedulers
 import io.reactivex.rxjava3.subjects.BehaviorSubject
 import io.reactivex.rxjava3.subjects.PublishSubject
-import org.reactivestreams.Publisher
 import java.io.IOException
 import java.io.InputStream
-import java.io.OutputStream
-import java.util.concurrent.Callable
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.TimeoutException
-import java.util.stream.IntStream
 
 fun InputStream?.isAvailable() = when (this) {
     null -> false
     else -> this.available() > 0
 }
 
+// Defines in millis how often message will be read
+const val READING_INTERVAL = 200L
+
 class SocketManagerImpl : SocketManager {
     private val TAG = "SocketManager"
-    //    private val mmBuffer: ByteArray = ByteArray(1024) // mmBuffer store for the stream
     private var btSocket: BluetoothSocket? = null
+    private var messageReceiverDisposable: Disposable? = null
 
     override var connectionState: BehaviorSubject<ConnectionState> =
             BehaviorSubject.createDefault(Disconnected)
@@ -47,63 +42,61 @@ class SocketManagerImpl : SocketManager {
 
     override fun connect(address: String, btAdapter: BluetoothAdapter): Completable =
             Completable.fromCallable {
-                ConnectThread(
-                        btAdapter,
-                        btAdapter.getRemoteDevice(address)
-                ).run()
+                runConnectionThread(address, btAdapter)
             }.doOnComplete {
                 observeSerialPort()
             }.timeout(5, TimeUnit.SECONDS).doOnError { error ->
-                Log.e(TAG, "Couldn't connect to device: $error")
                 if (error is TimeoutException)
                     connectionState.onNext(Error(R.string.error_timeout))
             }
 
     override fun disconnect(): Completable =
             Completable.fromCallable {
-                btSocket?.close()
+                closeSources()
                 connectionState.onNext(Disconnected)
-            }.timeout(5, TimeUnit.SECONDS).doOnError { error ->
-                Log.e(TAG, "Couldn't close the client socket: $error")
+            }.timeout(5, TimeUnit.SECONDS).doOnError {
                 connectionState.onNext(Error(R.string.error_disconnect))
             }
 
     override fun writeMessage(message: String): Completable =
             Completable.fromCallable {
-                btSocket?.outputStream?.use {
-                    it.write(message.toByteArray())
-                }
+                btSocket?.outputStream?.write(message.toByteArray())
             }.doOnError { error -> Log.e(TAG, "Couldn't write message to the socket: $error") }
 
+    private fun runConnectionThread(address: String, btAdapter: BluetoothAdapter) {
+        ConnectThread(btAdapter, btAdapter.getRemoteDevice(address)).run()
+    }
+
+    private fun closeSources() {
+        btSocket?.close()
+        messageReceiverDisposable?.dispose()
+    }
+
     private fun observeSerialPort() {
-        streamObserver()
-                .subscribeOn(Schedulers.io())
-                .subscribe(
-                        { message -> messagePublisher.onNext(message) },
-                        { error -> Log.e(TAG, "Cannot read a message: $error") }
-                )
+        messageReceiverDisposable?.dispose()
+        if (connectionState.value is Connected)
+            messageReceiverDisposable = streamObserver()
+                    .subscribeOn(Schedulers.io())
+                    .subscribe({ message ->
+                        messagePublisher.onNext(message)
+                        Log.d(TAG, "Received message: $message")
+                    }, { error ->
+                        Log.e(TAG, "Cannot read a message: $error")
+                    })
     }
 
     private fun streamObserver(): Observable<String> =
-            Observable.interval(500, TimeUnit.MILLISECONDS)
+            Observable.interval(READING_INTERVAL, TimeUnit.MILLISECONDS)
                     .map { readStream(btSocket?.inputStream) }
 
     private fun readStream(stream: InputStream?): String {
         var output = ""
         when (stream) {
             null -> return output
-            else ->
-                // Collect the data from stream
-                stream.use { stream ->
-                    // `use` will always close the stream
-                    while (stream.isAvailable()) {
-                        Log.d(TAG, "Reading...")
-                        stream.let { output += it.read().toChar() }
-                    }
-                }
+            else -> while (stream.isAvailable()) {
+                stream.let { output += it.read().toChar() }
+            }
         }
-
-        Log.d(TAG, "Received message: $output")
         return output
     }
 
