@@ -11,8 +11,10 @@ import com.czterysery.ledcontroller.data.model.*
 import com.czterysery.ledcontroller.data.socket.SocketManager
 import com.czterysery.ledcontroller.view.MainView
 import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers
+import io.reactivex.rxjava3.core.Completable
 import io.reactivex.rxjava3.disposables.Disposable
 import io.reactivex.rxjava3.schedulers.Schedulers
+import java.util.*
 
 fun doNothing(): () -> Unit = {}
 
@@ -77,13 +79,6 @@ class MainPresenterImpl(
 
     override fun setAnimation(anim: String) {
         writeMessage(Messages.SET_ANIMATION + anim.toUpperCase() + "\r\n")
-    }
-
-    /* Get the current params from an ESP32 */
-// TODO Implement this and rename
-    private fun loadCurrentParams() {
-//        getColor()
-//        getBrightness()
     }
 
     override fun isConnected() = socketManager.connectionState.value is Connected
@@ -201,6 +196,7 @@ class MainPresenterImpl(
                 ).subscribeOn(Schedulers.io())
                         .subscribe({
                             sendConnectionMessage(connected = true)
+                            tryToGetConfiguration()
                         }, { error ->
                             view?.showLoading(shouldShow = false)
                             Log.e(TAG, "Couldn't connect to device: $error")
@@ -209,13 +205,18 @@ class MainPresenterImpl(
     }
 
     private fun tryToGetConfiguration() {
-        // TODO `showLoading`
-        // TODO Here create get configuartion with 5sec or less timeout
-        // TODO `hideLoading`
+        view?.showLoading()
+        Completable.fromCallable {
+            writeMessage(Messages.GET_CONFIGURATION)
+        }
+        // TODO Wait for receiving a message
     }
 
     private fun parseMessage(message: String) {
-        Log.d(TAG, "Message = $message")
+        when (message) {
+            "" -> return
+            // TODO Parse received configuration
+        }
     }
 
     private fun registerListeners() {
