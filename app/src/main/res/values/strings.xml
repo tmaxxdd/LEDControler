@@ -20,7 +20,12 @@
     <string name="connected_with">Connected with %s</string>
     <string name="not_paired_with_device">You haven\'t paired with your LED receiver. Go to Bluetooth settings and select it from the available devices.</string>
     <string name="no_devices">No devices</string>
-    <string name="ok">Ok</string>
+    <string name="ok">OK</string>
+    <string name="error_receiving_message">Error during receiving a message. You can still control your LEDs.</string>
+    <string name="error_bt_not_available">Bluetooth is not available</string>
+    <string name="error_cannot_find_device">Cannot find the selected device</string>
+    <string name="error_timeout">Cannot connect. Timeout!</string>
+    <string name="error_disconnect">Can\'t disconnect!</string>
     <string-array name="animations">
         <item>None</item>
         <item>Pulse</item>

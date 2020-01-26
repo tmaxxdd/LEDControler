@@ -1,6 +1,7 @@
 package com.czterysery.ledcontroller.view
 
 import android.content.DialogInterface
+import androidx.annotation.StringRes
 
 interface MainView {
 
@@ -20,7 +21,7 @@ interface MainView {
 
     fun showDisconnected()
 
-    fun showError(message: String)
+    fun showError(@StringRes messageId: Int, vararg args: Any)
 
     fun showBtEnabled()
 

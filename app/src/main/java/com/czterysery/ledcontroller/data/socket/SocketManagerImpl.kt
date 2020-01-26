@@ -5,71 +5,99 @@ import android.bluetooth.BluetoothDevice
 import android.bluetooth.BluetoothSocket
 import android.util.Log
 import com.czterysery.ledcontroller.Constants
-import com.czterysery.ledcontroller.data.bluetooth.BluetoothController
+import com.czterysery.ledcontroller.R
 import com.czterysery.ledcontroller.data.model.Connected
 import com.czterysery.ledcontroller.data.model.ConnectionState
 import com.czterysery.ledcontroller.data.model.Disconnected
 import com.czterysery.ledcontroller.data.model.Error
 import io.reactivex.rxjava3.core.Completable
+import io.reactivex.rxjava3.core.Observable
+import io.reactivex.rxjava3.disposables.Disposable
+import io.reactivex.rxjava3.schedulers.Schedulers
 import io.reactivex.rxjava3.subjects.BehaviorSubject
+import io.reactivex.rxjava3.subjects.PublishSubject
 import java.io.IOException
+import java.io.InputStream
+import java.util.concurrent.TimeUnit
+import java.util.concurrent.TimeoutException
+
+fun InputStream?.isAvailable() = when (this) {
+    null -> false
+    else -> this.available() > 0
+}
+
+// Defines in millis how often message will be read
+const val READING_INTERVAL = 200L
 
 class SocketManagerImpl : SocketManager {
     private val TAG = "SocketManager"
-    private val mmBuffer: ByteArray = ByteArray(1024) // mmBuffer store for the stream
-
-    companion object {
-        private var btSocket: BluetoothSocket? = null
-    }
+    private var btSocket: BluetoothSocket? = null
+    private var messageReceiverDisposable: Disposable? = null
 
     override var connectionState: BehaviorSubject<ConnectionState> =
             BehaviorSubject.createDefault(Disconnected)
 
-    override fun connect(address: String, btAdapter: BluetoothAdapter) {
-        val device = btAdapter.getRemoteDevice(address)
-        ConnectThread(btAdapter, device).run()
-    }
+    override val messagePublisher: PublishSubject<String> =
+            PublishSubject.create()
 
-    override fun disconnect() {
-        btSocket?.let {
-            try {
-                btSocket!!.close() //close connection
+    override fun connect(address: String, btAdapter: BluetoothAdapter): Completable =
+            Completable.fromCallable {
+                runConnectionThread(address, btAdapter)
+            }.doOnComplete {
+                observeSerialPort()
+            }.timeout(5, TimeUnit.SECONDS).doOnError { error ->
+                if (error is TimeoutException)
+                    connectionState.onNext(Error(R.string.error_timeout))
+            }
+
+    override fun disconnect(): Completable =
+            Completable.fromCallable {
+                closeSources()
                 connectionState.onNext(Disconnected)
-            } catch (e: IOException) {
-                Log.e(TAG, "Couldn't close the client socket", e)
-                connectionState.onNext(Error("Can't disconnect!"))
+            }.timeout(5, TimeUnit.SECONDS).doOnError {
+                connectionState.onNext(Error(R.string.error_disconnect))
             }
-        }
+
+    override fun writeMessage(message: String): Completable =
+            Completable.fromCallable {
+                btSocket?.outputStream?.write(message.toByteArray())
+            }.doOnError { error -> Log.e(TAG, "Couldn't write message to the socket: $error") }
+
+    private fun runConnectionThread(address: String, btAdapter: BluetoothAdapter) {
+        ConnectThread(btAdapter, btAdapter.getRemoteDevice(address)).run()
     }
 
-    // TODO Refactor
-    override fun writeMessage(message: String) {
-        btSocket?.let {
-            try {
-                btSocket!!.outputStream.write(message.toByteArray())
-            } catch (e: IOException) {
-                Log.d(TAG, "Couldn't write message to the socket")
-            }
-        }
+    private fun closeSources() {
+        btSocket?.close()
+        messageReceiverDisposable?.dispose()
     }
 
-    // TODO Refactor
-    override fun readMessage(): String {
-        var len = 0
-        if (btSocket != null) {
-            try {
-                len = btSocket!!.inputStream.available()
-                while (btSocket!!.inputStream.available() > 0) {
-                    btSocket!!.inputStream.read(mmBuffer)
-                    Log.d(TAG, "Message = ${String(mmBuffer, 0, len)}")
-                    Log.d(TAG, "Bytes to read = ${btSocket!!.inputStream.available()}")
-                }
-                return String(mmBuffer, 0, len)
-            } catch (e: IOException) {
-                Log.d(TAG, "Cannot read a message")
+    private fun observeSerialPort() {
+        messageReceiverDisposable?.dispose()
+        if (connectionState.value is Connected)
+            messageReceiverDisposable = streamObserver()
+                    .subscribeOn(Schedulers.io())
+                    .subscribe({ message ->
+                        messagePublisher.onNext(message)
+                        Log.d(TAG, "Received message: $message")
+                    }, { error ->
+                        Log.e(TAG, "Cannot read a message: $error")
+                    })
+    }
+
+    private fun streamObserver(): Observable<String> =
+            Observable.interval(READING_INTERVAL, TimeUnit.MILLISECONDS)
+                    .map { readStream(btSocket?.inputStream) }
+
+    private fun readStream(stream: InputStream?): String {
+        var output = ""
+        when (stream) {
+            null -> return output
+            else -> while (stream.isAvailable()) {
+                stream.let { output += it.read().toChar() }
             }
         }
-        return ""
+        return output
     }
 
     private inner class ConnectThread(private val adapter: BluetoothAdapter, private val device: BluetoothDevice) : Thread() {
@@ -89,14 +117,13 @@ class SocketManagerImpl : SocketManager {
                 try {
                     socket.connect()
                 } catch (e: Exception) {
-                    connectionState.onNext(Error("Timeout! Cannot connect to a device"))
+                    connectionState.onNext(Error(R.string.error_timeout))
                     cancel()
                 }
 
                 if (socket.isConnected) {
                     connectionState.onNext(Connected(device.name))
                 } else {
-                    connectionState.onNext(Error("Connection Failed. Is it a SPP Bluetooth? Try again."))
                     cancel()
                 }
 

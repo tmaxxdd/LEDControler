@@ -7,6 +7,7 @@ import android.content.IntentFilter
 import android.graphics.Color
 import android.os.Bundle
 import android.widget.ArrayAdapter
+import androidx.annotation.StringRes
 import androidx.appcompat.app.AppCompatActivity
 import com.czterysery.ledcontroller.BluetoothStateBroadcastReceiver
 import com.czterysery.ledcontroller.DialogManager
@@ -146,7 +147,7 @@ class MainActivity : AppCompatActivity(), MainView, ColorObserver {
     override fun showConnected(device: String) {
         updateConnectionViewState(isConnected = true)
 
-        showBottomMessage(getString(R.string.connected_with, device))
+        showBottomMessage(R.string.connected_with, device)
         previousConnectionState = Connected(device)
     }
 
@@ -154,14 +155,13 @@ class MainActivity : AppCompatActivity(), MainView, ColorObserver {
         updateConnectionViewState(isConnected = false)
 
         if (previousConnectionState is Connected)
-            showBottomMessage(getString(R.string.disconnected))
+            showBottomMessage(R.string.disconnected)
 
         previousConnectionState = Disconnected
     }
 
-    override fun showError(message: String) {
-        updateConnectionViewState(isConnected = false)
-        showBottomMessage(message)
+    override fun showError(@StringRes messageId: Int, vararg args: Any) {
+        showBottomMessage(messageId, args)
     }
 
     override fun showBtEnabled() {
@@ -192,8 +192,8 @@ class MainActivity : AppCompatActivity(), MainView, ColorObserver {
         }
     }
 
-    private fun showBottomMessage(message: String) {
-        Snackbar.make(container, message, Snackbar.LENGTH_SHORT).show()
+    private fun showBottomMessage(@StringRes messageId: Int, vararg args: Any) {
+        Snackbar.make(container, getString(messageId, args), Snackbar.LENGTH_SHORT).show()
     }
 
     private fun runBtEnabler() {
