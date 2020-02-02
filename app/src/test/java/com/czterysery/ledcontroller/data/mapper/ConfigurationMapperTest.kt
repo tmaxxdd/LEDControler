@@ -1,6 +1,8 @@
 package com.czterysery.ledcontroller.data.mapper
 
 import com.czterysery.ledcontroller.data.model.Illumination
+import com.czterysery.ledcontroller.exceptions.InvalidBrightnessValueException
+import com.czterysery.ledcontroller.exceptions.InvalidColorValueException
 import com.czterysery.ledcontroller.exceptions.InvalidConfigurationMessageException
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -10,7 +12,6 @@ import org.robolectric.RobolectricTestRunner
 class ConfigurationMapperTest {
     private val configurationMapper = ConfigurationMapper()
 
-    // TODO Add other sad paths
     @Test
     fun `should return valid int color value for hex type`() {
         val configWithBlueColor = "CONF=clr:#2233ff,brig:2,illu:1"
@@ -43,19 +44,45 @@ class ConfigurationMapperTest {
     }
 
     @Test(expected = InvalidConfigurationMessageException::class)
-    fun `should throw InvalidConfigurationMessageException for malformed message`() {
+    fun `should throw InvalidConfigurationMessageException for wrong color key`() {
         val configWithErrorInColor = "CONF=colr:#2233ff,brig:2,illu:1"
-        val configWithErrorInBrightness = "CONF=colr:#2233ff,brigh:2,illu:1"
-        val configWithErrorInIllumination = "CONF=colr:#2233ff,brig:2,ilu:1"
-
         configurationMapper(configWithErrorInColor)
+
+    }
+
+    @Test(expected = InvalidConfigurationMessageException::class)
+    fun `should throw InvalidConfigurationMessageException for wrong brightness key`() {
+        val configWithErrorInBrightness = "CONF=colr:#2233ff,brigh:2,illu:1"
         configurationMapper(configWithErrorInBrightness)
+    }
+
+    @Test(expected = InvalidConfigurationMessageException::class)
+    fun `should throw InvalidConfigurationMessageException for wrong illumination key`() {
+        val configWithErrorInIllumination = "CONF=colr:#2233ff,brig:2,ilu:1"
         configurationMapper(configWithErrorInIllumination)
     }
 
-    @Test
-    fun `should throw InvalidColorValueException for wrong color`() {
-
+    @Test(expected = InvalidColorValueException::class)
+    fun `should throw InvalidColorValueException for shortened color`() {
+        val configWithShortenedColor = "CONF=clr:#23f,brig:2,illu:1"
+        configurationMapper(configWithShortenedColor)
     }
 
+    @Test(expected = InvalidBrightnessValueException::class)
+    fun `should throw InvalidBrightnessValueException for brightness over the range`() {
+        val configWithBrightnessOutOfRange = "CONF=clr:#2233ff,brig:256,illu:1"
+        configurationMapper(configWithBrightnessOutOfRange)
+    }
+
+    @Test(expected = InvalidBrightnessValueException::class)
+    fun `should throw InvalidBrightnessValueException for brightness below the range`() {
+        val configWithBrightnessOutOfRange = "CONF=clr:#2233ff,brig:-1,illu:1"
+        configurationMapper(configWithBrightnessOutOfRange)
+    }
+
+    @Test
+    fun `should throw InvalidIlluminationValueException for type out of range`() {
+        val configurationWithIlluminationOutOfRange = "CONF=clr:#2233ff,brig:231,illu:10"
+        configurationMapper(configurationWithIlluminationOutOfRange)
+    }
 }

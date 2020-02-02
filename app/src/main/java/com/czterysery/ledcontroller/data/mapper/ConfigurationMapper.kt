@@ -13,10 +13,9 @@ const val colorPrefix = "clr:"
 const val brightnessPrefix = "brig:"
 const val illuminationPrefix = "illu:"
 private val brightnessRange = 0..255
-private val illuminationRange = 0..9
+private val illuminationTypeRange = 0..9
 
 class ConfigurationMapper {
-    private val TAG = "ConfigurationMapper"
     private val illuminationMapper = IlluminationMapper()
 
     operator fun invoke(message: String) =
@@ -46,8 +45,8 @@ class ConfigurationMapper {
             message
                 .substring(start) // "brig:244,,"
                 .takeWhile { it.isDigit() } // "244,," -> "244"
-                .toInt() // "244" -> 244
-                .takeIf { it in brightnessRange }
+                .toIntOrNull() // "244" -> 244
+                ?.takeIf { it in brightnessRange }
                 ?: throw InvalidBrightnessValueException()
         } else {
             throw InvalidConfigurationMessageException()
@@ -60,7 +59,7 @@ class ConfigurationMapper {
                 .elementAt(start)
                 .takeIf { it.isDigit() }
                 ?.toString()?.toInt()
-                ?.takeIf { it in illuminationRange }
+                ?.takeIf { it in illuminationTypeRange }
                 ?.let { illuminationId ->
                     return@let illuminationMapper(illuminationId)
                 } ?: throw InvalidIlluminationValueException()
