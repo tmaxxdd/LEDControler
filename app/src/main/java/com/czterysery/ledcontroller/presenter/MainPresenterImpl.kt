@@ -1,28 +1,33 @@
 package com.czterysery.ledcontroller.presenter
 
 import android.bluetooth.BluetoothAdapter
-import android.os.Handler
 import android.util.Log
+import android.view.View
 import com.czterysery.ledcontroller.BluetoothStateBroadcastReceiver
 import com.czterysery.ledcontroller.Messages
 import com.czterysery.ledcontroller.R
 import com.czterysery.ledcontroller.data.bluetooth.BluetoothController
+import com.czterysery.ledcontroller.data.mapper.MessageMapper
 import com.czterysery.ledcontroller.data.model.*
+import com.czterysery.ledcontroller.data.socket.READING_INTERVAL
 import com.czterysery.ledcontroller.data.socket.SocketManager
 import com.czterysery.ledcontroller.view.MainView
 import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers
 import io.reactivex.rxjava3.core.Completable
+import io.reactivex.rxjava3.core.Observable
 import io.reactivex.rxjava3.disposables.Disposable
 import io.reactivex.rxjava3.schedulers.Schedulers
-import java.util.*
 import java.util.concurrent.TimeUnit
+import java.util.concurrent.TimeoutException
 
-fun doNothing(): () -> Unit = {}
+const val RESPONSE_TIMEOUT = 2L // sec
+val IGNORE_SUCCESS = {}
 
 class MainPresenterImpl(
     private val bluetoothStateBroadcastReceiver: BluetoothStateBroadcastReceiver,
     private val btController: BluetoothController,
-    private val socketManager: SocketManager
+    private val socketManager: SocketManager,
+    private val messageMapper: MessageMapper
 ) : MainPresenter {
     private val TAG = "MainPresenter"
 
@@ -40,6 +45,7 @@ class MainPresenterImpl(
     private var connectionStateDisposable: Disposable? = null
     private var messagePublisherDisposable: Disposable? = null
     private var messageWriterDisposable: Disposable? = null
+    private var configurationListenerDisposable: Disposable? = null
 
     private var view: MainView? = null
 
@@ -64,7 +70,7 @@ class MainPresenterImpl(
     override fun disconnect() {
         sendConnectionMessage(connected = false)
         socketManager.disconnect().subscribe(
-            doNothing(), { error ->
+            IGNORE_SUCCESS, { error ->
             Log.e(TAG, "Couldn't close the socket: $error")
         })
     }
@@ -78,8 +84,8 @@ class MainPresenterImpl(
         writeMessage(Messages.SET_BRIGHTNESS + value + "\r\n")
     }
 
-    override fun setAnimation(anim: String) {
-        writeMessage(Messages.SET_ANIMATION + anim.toUpperCase() + "\r\n")
+    override fun setIllumination(position: Int) {
+        writeMessage(Messages.SET_ANIMATION + Illumination.values()[position].name + "\r\n")
     }
 
     override fun isConnected() = socketManager.connectionState.value is Connected
@@ -207,23 +213,44 @@ class MainPresenterImpl(
 
     private fun tryToGetConfiguration() {
         view?.showLoading()
-        Completable.fromCallable {
-            writeMessage(Messages.GET_CONFIGURATION)
-        }.andThen(waitForResponse()).timeout(1, TimeUnit.SECONDS)
-        // TODO Wait for receiving a message
+        configurationListenerDisposable?.dispose()
+        configurationListenerDisposable =
+            Completable.fromCallable {
+                writeMessage(Messages.GET_CONFIGURATION)
+            }.timeout(RESPONSE_TIMEOUT, TimeUnit.MILLISECONDS)
+                .subscribe(
+                    IGNORE_SUCCESS,
+                    { error ->
+                        view?.showLoading(false)
+                        if (error is TimeoutException) {
+                            Log.e(TAG, "Timeout! Configuration message hasn't been delivered on time.")
+                        } else {
+                            Log.e(TAG, "Error during receiving config. message: $error")
+                        }
+                    }
+                )
     }
 
-    private fun parseMessage(message: String) {
-        when (message) {
-            "" -> return
-            // TODO Parse received configuration
+    private fun parseMessage(messageValue: String) {
+        when (val message: Message = messageMapper(messageValue)) {
+            is Configuration -> {
+                configurationListenerDisposable?.dispose()
+                adjustViewToConfiguration(message)
+            }
+            is Unknown -> {
+                Log.d(TAG, "Received message is unknown.")
+            }
         }
     }
 
-    // TODO Implement
-    private fun waitForResponse(): Completable = Completable.complete()
-//            socketManager.messagePublisher
-//                    .takeUntil {it -> }
+    private fun adjustViewToConfiguration(config: Configuration) {
+        view?.let { view ->
+            view.updateColor(config.color)
+            view.updateBrightness(config.brightness)
+            view.updateIllumination(config.illumination)
+            view.showLoading(false)
+        }
+    }
 
     private fun registerListeners() {
         subscribeBluetoothStateListener(bluetoothStateListener)
@@ -235,5 +262,6 @@ class MainPresenterImpl(
         messagePublisherDisposable?.dispose()
         btStateDisposable?.dispose()
         connectionStateDisposable?.dispose()
+        configurationListenerDisposable?.dispose()
     }
 }

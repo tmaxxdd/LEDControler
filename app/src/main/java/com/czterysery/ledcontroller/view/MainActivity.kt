@@ -13,6 +13,7 @@ import com.czterysery.ledcontroller.BluetoothStateBroadcastReceiver
 import com.czterysery.ledcontroller.DialogManager
 import com.czterysery.ledcontroller.R
 import com.czterysery.ledcontroller.data.bluetooth.BluetoothController
+import com.czterysery.ledcontroller.data.mapper.MessageMapper
 import com.czterysery.ledcontroller.data.model.*
 import com.czterysery.ledcontroller.data.socket.SocketManagerImpl
 import com.czterysery.ledcontroller.presenter.MainPresenter
@@ -30,9 +31,10 @@ class MainActivity : AppCompatActivity(), MainView, ColorObserver {
     private lateinit var dialogManager: DialogManager
     private val btStateReceiver = BluetoothStateBroadcastReceiver()
     private val mPresenter: MainPresenter = MainPresenterImpl(
-            btStateReceiver,
-            BluetoothController(),
-            SocketManagerImpl()
+        btStateReceiver,
+        BluetoothController(),
+        SocketManagerImpl(),
+        MessageMapper()
     )
 
     private var allowChangeColor = false
@@ -45,7 +47,7 @@ class MainActivity : AppCompatActivity(), MainView, ColorObserver {
         dialogManager = DialogManager(this)
 
         initColorPicker()
-        initAnimSpinner()
+        initIlluminationDropdown()
 
         brightnessSlider.setOnPositionChangeListener { _, _, _, _, _, newValue ->
             mPresenter.setBrightness(newValue)
@@ -80,35 +82,38 @@ class MainActivity : AppCompatActivity(), MainView, ColorObserver {
     override fun onColor(color: Int, fromUser: Boolean, shouldPropagate: Boolean) {
         if (allowChangeColor) {
             mPresenter.setColor(color)
-            updateCurrentColor(color)
+            updateColor(color)
         }
     }
 
     private fun updateConnectionViewState(isConnected: Boolean) {
         if (isConnected) {
             colorPicker.alpha = 1f
-            animationDropdown.isEnabled = true
+            illuminationDropdown.isEnabled = true
             brightnessSlider.isEnabled = true
             allowChangeColor = true
             connectAction.text = getString(R.string.disconnect)
         } else {
             colorPicker.alpha = 0.5f
-            animationDropdown.isEnabled = false
+            illuminationDropdown.isEnabled = false
             brightnessSlider.isEnabled = false
             allowChangeColor = false
             connectAction.text = getString(R.string.connect)
         }
     }
 
-    override fun updateCurrentColor(receivedColor: Int) {
+    override fun updateColor(receivedColor: Int) {
         dropdownItem?.textColor = receivedColor
         brightnessSlider.setPrimaryColor(receivedColor)
         connectAction.setTextColor(receivedColor)
     }
 
-    // TODO Change name to updateCurrentBrightness
-    override fun updateColorBrightnessValue(receivedBrightness: Int) {
+    override fun updateBrightness(receivedBrightness: Int) {
         brightnessSlider.setValue(receivedBrightness.toFloat(), true)
+    }
+
+    override fun updateIllumination(receivedIllumination: Illumination) {
+        illuminationDropdown.setSelection(receivedIllumination.ordinal)
     }
 
     private fun changeConnectionStatus() {
@@ -118,8 +123,6 @@ class MainActivity : AppCompatActivity(), MainView, ColorObserver {
             mPresenter.disconnect()
         }
     }
-
-    // TODO Add updateCurrentAnimation
 
     override fun showMessage(text: String) {
         toast(text)
@@ -134,7 +137,7 @@ class MainActivity : AppCompatActivity(), MainView, ColorObserver {
 
     override fun showDevicesList(devices: Array<String>, selectedDevice: (DialogInterface, String) -> Unit) {
         dialogManager.deviceSelection(devices, selectedDevice)
-                .show()
+            .show()
     }
 
     override fun showPairWithDevice() {
@@ -178,8 +181,8 @@ class MainActivity : AppCompatActivity(), MainView, ColorObserver {
 
     override fun showBtNotSupported() {
         dialogManager.btNotSupported
-                .positiveActionClickListener { finish() }
-                .show()
+            .positiveActionClickListener { finish() }
+            .show()
     }
 
     private fun showReconnect() {
@@ -207,12 +210,12 @@ class MainActivity : AppCompatActivity(), MainView, ColorObserver {
         colorPicker.reset()
     }
 
-    private fun initAnimSpinner() {
-        val animAdapter = ArrayAdapter<String>(this, R.layout.row_spn, resources.getStringArray(R.array.animations))
-        animAdapter.setDropDownViewResource(R.layout.row_spn_dropdown)
-        animationDropdown.adapter = animAdapter
-        animationDropdown.setOnItemClickListener { parent, _, position, _ ->
-            mPresenter.setAnimation(parent?.adapter?.getItem(position).toString())
+    private fun initIlluminationDropdown() {
+        val illuminationAdapter = ArrayAdapter<String>(this, R.layout.row_spn, Illumination.values().map { it.name })
+        illuminationAdapter.setDropDownViewResource(R.layout.row_spn_dropdown)
+        illuminationDropdown.adapter = illuminationAdapter
+        illuminationDropdown.setOnItemClickListener { parent, _, position, _ ->
+            mPresenter.setIllumination(position)
             true
         }
     }

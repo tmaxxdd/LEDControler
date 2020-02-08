@@ -4,7 +4,7 @@
     <string name="not_connected">Not connected</string>
     <string name="disconnect">Disconnect</string>
     <string name="connect">Connect</string>
-    <string name="animation_title">Animation</string>
+    <string name="illumination_title">Illumination</string>
     <string name="bt_not_supported_title">Bluetooth not supported</string>
     <string name="close_app">Close app</string>
     <string name="bt_not_supported_message">For some reason app cannot access Bluetooth. Probably your device doesn\'t have or support it.</string>

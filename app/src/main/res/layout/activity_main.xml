@@ -49,26 +49,26 @@
                 app:layout_constraintWidth_percent="0.9" />
 
             <TextView
-                android:id="@+id/animationLabel"
+                android:id="@+id/illuminationLabel"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="@dimen/spacing_8"
                 android:layout_marginEnd="@dimen/spacing_8"
                 android:layout_marginRight="@dimen/spacing_8"
-                android:text="@string/animation_title"
+                android:text="@string/illumination_title"
                 app:fontFamily="sans-serif-condensed"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintTop_toBottomOf="@+id/colorPicker" />
 
             <com.rey.material.widget.Spinner
-                android:id="@+id/animationDropdown"
+                android:id="@+id/illuminationDropdown"
                 style="@style/CustomDropdown"
                 android:layout_width="match_parent"
                 android:layout_height="@dimen/dropdown_height"
                 android:layout_marginStart="@dimen/spacing_8"
                 android:layout_marginTop="@dimen/spacing_8"
                 android:layout_marginEnd="@dimen/spacing_8"
-                app:layout_constraintTop_toBottomOf="@id/animationLabel" />
+                app:layout_constraintTop_toBottomOf="@id/illuminationLabel" />
 
             <TextView
                 android:id="@+id/brightnessLabel"
@@ -80,7 +80,7 @@
                 android:text="@string/brightness_title"
                 app:fontFamily="sans-serif-condensed"
                 app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintTop_toBottomOf="@+id/animationDropdown" />
+                app:layout_constraintTop_toBottomOf="@+id/illuminationDropdown" />
 
             <com.rey.material.widget.Slider
                 android:id="@+id/brightnessSlider"
