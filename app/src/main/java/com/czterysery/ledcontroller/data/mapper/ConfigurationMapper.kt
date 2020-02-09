@@ -25,45 +25,50 @@ class ConfigurationMapper {
             getIllumination(message)
         )
 
-    private fun getColor(message: String): Int =
+    private fun getColor(message: String): Int {
         if (message.contains("(clr:#).{6}".toRegex())) {
             val start = message.indexOf(colorPrefix) + 4 // Position after 'clr:'
             val colorVal = message.substring(start, start + colorLength)
             try {
-                Color.parseColor(colorVal)
+                return Color.parseColor(colorVal)
             } catch (e: Exception) {
                 throw InvalidColorValueException(colorVal)
             }
         } else {
             throw InvalidConfigurationMessageException()
         }
+    }
 
-    private fun getBrightness(message: String): Int =
+    private fun getBrightness(message: String): Int {
         if (message.contains("($brightnessPrefix)".toRegex())) {
             val start = message.indexOf(brightnessPrefix) + 5 // Position after 'brig:'
-            // Filter only first digits after prefix
-            message
-                .substring(start) // "brig:244,,"
-                .takeWhile { it.isDigit() } // "244,," -> "244"
-                .toIntOrNull() // "244" -> 244
+            val numericValue = message
+                .substring(start)
+                .takeWhile { it.isDigit() }
+                .toIntOrNull()
                 ?.takeIf { it in brightnessRange }
-                ?: throw InvalidBrightnessValueException()
+
+            return numericValue ?: throw InvalidBrightnessValueException()
         } else {
             throw InvalidConfigurationMessageException()
         }
+    }
 
-    private fun getIllumination(message: String): Illumination =
+    private fun getIllumination(message: String): Illumination {
         if (message.contains("($illuminationPrefix)".toRegex())) {
             val start = message.indexOf(illuminationPrefix) + 5 // Position after 'illu:'
-            message
+            val value = message
                 .elementAt(start)
                 .takeIf { it.isDigit() }
                 ?.toString()?.toInt()
                 ?.takeIf { it in illuminationTypeRange }
                 ?.let { illuminationId ->
                     return@let illuminationMapper(illuminationId)
-                } ?: throw InvalidIlluminationValueException()
+                }
+
+            return value ?: throw InvalidIlluminationValueException()
         } else {
             throw InvalidConfigurationMessageException()
         }
+    }
 }
