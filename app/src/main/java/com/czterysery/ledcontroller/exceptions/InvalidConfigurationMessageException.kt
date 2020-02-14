@@ -3,4 +3,4 @@ package com.czterysery.ledcontroller.exceptions
 import java.lang.Exception
 
 class InvalidConfigurationMessageException :
-    Exception("One of more params are invalid.")
+    Exception("Part or the whole configuration message is invalid.")

@@ -13,7 +13,7 @@ const val colorPrefix = "clr:"
 const val brightnessPrefix = "brig:"
 const val illuminationPrefix = "illu:"
 private val brightnessRange = 0..255
-private val illuminationTypeRange = 0..9
+private val illuminationTypeRange = Illumination.values().indices
 
 class ConfigurationMapper {
     private val illuminationMapper = IlluminationMapper()
@@ -28,7 +28,7 @@ class ConfigurationMapper {
     private fun getColor(message: String): Int {
         if (message.contains("(clr:#).{6}".toRegex())) {
             val start = message.indexOf(colorPrefix) + 4 // Position after 'clr:'
-            val colorVal = message.substring(start, start + colorLength)
+            val colorVal: String = message.substring(start, start + colorLength)
             try {
                 return Color.parseColor(colorVal)
             } catch (e: Exception) {
@@ -40,9 +40,9 @@ class ConfigurationMapper {
     }
 
     private fun getBrightness(message: String): Int {
-        if (message.contains("($brightnessPrefix)".toRegex())) {
+        if (message.contains(brightnessPrefix)) {
             val start = message.indexOf(brightnessPrefix) + 5 // Position after 'brig:'
-            val numericValue = message
+            val numericValue: Int? = message
                 .substring(start)
                 .takeWhile { it.isDigit() }
                 .toIntOrNull()
@@ -55,9 +55,9 @@ class ConfigurationMapper {
     }
 
     private fun getIllumination(message: String): Illumination {
-        if (message.contains("($illuminationPrefix)".toRegex())) {
+        if (message.contains(illuminationPrefix)) {
             val start = message.indexOf(illuminationPrefix) + 5 // Position after 'illu:'
-            val value = message
+            val value: Illumination? = message
                 .elementAt(start)
                 .takeIf { it.isDigit() }
                 ?.toString()?.toInt()

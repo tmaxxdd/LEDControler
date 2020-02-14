@@ -2,19 +2,19 @@ package com.czterysery.ledcontroller.presenter
 
 import android.bluetooth.BluetoothAdapter
 import android.util.Log
-import android.view.View
 import com.czterysery.ledcontroller.BluetoothStateBroadcastReceiver
 import com.czterysery.ledcontroller.Messages
+import com.czterysery.ledcontroller.Messages.Companion.END_OF_LINE
 import com.czterysery.ledcontroller.R
 import com.czterysery.ledcontroller.data.bluetooth.BluetoothController
 import com.czterysery.ledcontroller.data.mapper.MessageMapper
 import com.czterysery.ledcontroller.data.model.*
-import com.czterysery.ledcontroller.data.socket.READING_INTERVAL
 import com.czterysery.ledcontroller.data.socket.SocketManager
 import com.czterysery.ledcontroller.view.MainView
 import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers
 import io.reactivex.rxjava3.core.Completable
 import io.reactivex.rxjava3.core.Observable
+import io.reactivex.rxjava3.core.Single
 import io.reactivex.rxjava3.disposables.Disposable
 import io.reactivex.rxjava3.schedulers.Schedulers
 import java.util.concurrent.TimeUnit
@@ -77,15 +77,15 @@ class MainPresenterImpl(
 
     override fun setColor(color: Int) {
         val hexColor = String.format("#%06X", (0xFFFFFF and color))
-        writeMessage(Messages.SET_COLOR + hexColor + "\r\n")
+        writeMessage(Messages.SET_COLOR + hexColor)
     }
 
     override fun setBrightness(value: Int) {
-        writeMessage(Messages.SET_BRIGHTNESS + value + "\r\n")
+        writeMessage(Messages.SET_BRIGHTNESS + value)
     }
 
     override fun setIllumination(position: Int) {
-        writeMessage(Messages.SET_ANIMATION + Illumination.values()[position].name + "\r\n")
+        writeMessage(Messages.SET_ILLUMINATION + Illumination.values()[position].name)
     }
 
     override fun isConnected() = socketManager.connectionState.value is Connected
@@ -154,15 +154,17 @@ class MainPresenterImpl(
 
     private fun writeMessage(message: String) {
         messageWriterDisposable?.dispose()
-        messageWriterDisposable = socketManager.writeMessage(message)
-            .subscribe()
+        messageWriterDisposable = socketManager.writeMessage(message + END_OF_LINE)
+            .subscribe(IGNORE_SUCCESS, { error ->
+                Log.e(TAG, "Couldn't write $message, $error")
+            })
     }
 
     private fun sendConnectionMessage(connected: Boolean) {
         if (connected)
-            writeMessage(Messages.CONNECTED + "\r\n")
+            writeMessage(Messages.CONNECTED)
         else
-            writeMessage(Messages.DISCONNECTED + "\r\n")
+            writeMessage(Messages.DISCONNECTED)
     }
 
     private fun checkIfBtSupportedAndReturnState(listener: (state: BluetoothState) -> Unit, state: BluetoothState) {
@@ -214,27 +216,33 @@ class MainPresenterImpl(
     private fun tryToGetConfiguration() {
         view?.showLoading()
         configurationListenerDisposable?.dispose()
-        configurationListenerDisposable =
-            Completable.fromCallable {
-                writeMessage(Messages.GET_CONFIGURATION)
-            }.timeout(RESPONSE_TIMEOUT, TimeUnit.MILLISECONDS)
-                .subscribe(
-                    IGNORE_SUCCESS,
-                    { error ->
-                        view?.showLoading(false)
-                        if (error is TimeoutException) {
-                            Log.e(TAG, "Timeout! Configuration message hasn't been delivered on time.")
-                        } else {
-                            Log.e(TAG, "Error during receiving config. message: $error")
-                        }
+        configurationListenerDisposable = Completable.fromCallable {
+            writeMessage(Messages.GET_CONFIGURATION)
+        }.andThen(awaitForResponse())
+            .doOnEvent { view?.showLoading(false) }
+            .subscribe(
+                IGNORE_SUCCESS,
+                { error ->
+                    if (error is TimeoutException) {
+                        Log.e(TAG, "Timeout! Configuration message hasn't been delivered on time.")
+                    } else {
+                        Log.e(TAG, "Error during receiving config. message: $error")
                     }
-                )
+                }
+            )
     }
+
+    private fun awaitForResponse() = socketManager.messagePublisher
+        .flatMapCompletable {
+            if (messageMapper(it) is Configuration)
+                Completable.complete()
+            else
+                Completable.never()
+        }.timeout(RESPONSE_TIMEOUT, TimeUnit.MILLISECONDS)
 
     private fun parseMessage(messageValue: String) {
         when (val message: Message = messageMapper(messageValue)) {
             is Configuration -> {
-                configurationListenerDisposable?.dispose()
                 adjustViewToConfiguration(message)
             }
             is Unknown -> {
@@ -245,10 +253,11 @@ class MainPresenterImpl(
 
     private fun adjustViewToConfiguration(config: Configuration) {
         view?.let { view ->
-            view.updateColor(config.color)
-            view.updateBrightness(config.brightness)
-            view.updateIllumination(config.illumination)
-            view.showLoading(false)
+            with(view) {
+                updateColor(config.color)
+                updateBrightness(config.brightness)
+                updateIllumination(config.illumination)
+            }
         }
     }
 
