@@ -4,7 +4,7 @@ class Messages {
 
     // TODO Shorten the messages
     companion object {
-        const val END_OF_LINE = "\r\n"
+        const val END_OF_LINE = '\n'
         const val GET_CONFIGURATION = "GC"
         const val CONNECTED = "CONNECTED"
         const val DISCONNECTED = "DISCONNECTED"

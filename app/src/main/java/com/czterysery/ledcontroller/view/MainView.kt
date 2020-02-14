@@ -1,7 +1,6 @@
 package com.czterysery.ledcontroller.view
 
 import android.content.DialogInterface
-import android.view.View
 import androidx.annotation.StringRes
 import com.czterysery.ledcontroller.data.model.Illumination
 

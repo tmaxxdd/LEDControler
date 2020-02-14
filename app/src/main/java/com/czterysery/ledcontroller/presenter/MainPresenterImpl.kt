@@ -220,6 +220,7 @@ class MainPresenterImpl(
             writeMessage(Messages.GET_CONFIGURATION)
         }.andThen(awaitForResponse())
             .doOnEvent { view?.showLoading(false) }
+            .retry(1)
             .subscribe(
                 IGNORE_SUCCESS,
                 { error ->

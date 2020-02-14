@@ -103,6 +103,7 @@ class MainActivity : AppCompatActivity(), MainView, ColorObserver {
     }
 
     override fun updateColor(receivedColor: Int) {
+        colorPicker.setInitialColor(receivedColor)
         dropdownItem?.textColor = receivedColor
         brightnessSlider.setPrimaryColor(receivedColor)
         connectAction.setTextColor(receivedColor)
