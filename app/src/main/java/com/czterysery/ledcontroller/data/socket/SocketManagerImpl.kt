@@ -29,6 +29,7 @@ fun InputStream?.isAvailable() = when (this) {
 
 // Defines in millis how often message will be read
 const val READING_INTERVAL = 200L
+const val CONNECTION_TIMEOUT = 5000L
 
 class SocketManagerImpl : SocketManager {
     private val TAG = "SocketManager"
@@ -46,16 +47,16 @@ class SocketManagerImpl : SocketManager {
             runConnectionThread(address, btAdapter)
         }.doOnComplete {
             observeSerialPort()
-        }.timeout(5, TimeUnit.SECONDS).doOnError { error ->
+        }.timeout(CONNECTION_TIMEOUT, TimeUnit.MILLISECONDS).doOnError { error ->
             if (error is TimeoutException)
                 connectionState.onNext(Error(R.string.error_timeout))
-        }
+        }.retry()
 
     override fun disconnect(): Completable =
         Completable.fromCallable {
             closeSources()
             connectionState.onNext(Disconnected)
-        }.timeout(5, TimeUnit.SECONDS).doOnError {
+        }.timeout(CONNECTION_TIMEOUT, TimeUnit.MILLISECONDS).doOnError {
             connectionState.onNext(Error(R.string.error_disconnect))
         }
 

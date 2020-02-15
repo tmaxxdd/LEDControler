@@ -132,9 +132,7 @@ class MainPresenterImpl(
                 subscribeMessagePublisher()
                 tryToGetConfiguration()
             }
-            Disconnected -> {
-                view?.showDisconnected()
-            }
+            Disconnected -> view?.showDisconnected()
             is Error -> view?.showError(state.messageId)
         }
         view?.showLoading(shouldShow = false)
@@ -205,11 +203,11 @@ class MainPresenterImpl(
                     btController.getDeviceAddress(deviceName) as String,
                     btController.adapter as BluetoothAdapter
                 ).subscribeOn(Schedulers.io())
+                    .doOnTerminate { view?.showLoading(shouldShow = false) }
                     .subscribe({
                         sendConnectionMessage(connected = true)
                         tryToGetConfiguration()
                     }, { error ->
-                        view?.showLoading(shouldShow = false)
                         Log.e(TAG, "Couldn't connect to device: $error")
                     })
             }
@@ -222,8 +220,8 @@ class MainPresenterImpl(
         configurationListenerDisposable = Completable.fromCallable {
             writeMessage(Messages.GET_CONFIGURATION)
         }.andThen(awaitForResponse())
-            .doOnEvent { view?.showLoading(false) }
-            .retry(1)
+            .doOnTerminate { view?.showLoading(false) }
+            .retry()
             .subscribe(
                 IGNORE_SUCCESS,
                 { error ->
@@ -248,10 +246,11 @@ class MainPresenterImpl(
     private fun parseMessage(messageValue: String) {
         when (val message: Message = messageMapper(messageValue)) {
             is Configuration -> {
+                configurationListenerDisposable?.dispose()
+                view?.showLoading(false)
                 adjustViewToConfiguration(message)
             }
             is Unknown -> {
-                Log.d(TAG, "Received message is unknown.")
             }
         }
     }

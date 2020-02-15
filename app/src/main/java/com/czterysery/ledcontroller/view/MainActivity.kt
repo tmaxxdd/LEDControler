@@ -125,10 +125,8 @@ class MainActivity : AppCompatActivity(), MainView, ColorObserver {
         brightnessSlider.setValue(receivedBrightness.toFloat(), true)
     }
 
-    // TODO Repair this. View is recreating for unknown reason
     override fun updateIllumination(receivedIllumination: Illumination) {
-        val position = Illumination.values().indexOf(receivedIllumination)
-        illuminationDropdown.setSelection(position)
+        illuminationDropdown.setSelection(receivedIllumination.ordinal)
     }
 
     private fun adjustViewColor(color: Int) {
