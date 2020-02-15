@@ -118,6 +118,7 @@ class MainPresenterImpl(
         messagePublisherDisposable?.dispose()
         messagePublisherDisposable = socketManager.messagePublisher
             .subscribeOn(Schedulers.io())
+            .observeOn(AndroidSchedulers.mainThread())
             .subscribe(
                 { message -> parseMessage(message) },
                 { view?.showError(R.string.error_receiving_message) }
@@ -129,7 +130,7 @@ class MainPresenterImpl(
             is Connected -> {
                 view?.showConnected(state.device)
                 subscribeMessagePublisher()
-//                tryToGetConfiguration()
+                tryToGetConfiguration()
             }
             Disconnected -> {
                 view?.showDisconnected()

@@ -7,6 +7,7 @@ import android.content.IntentFilter
 import android.content.res.ColorStateList
 import android.graphics.Color
 import android.os.Bundle
+import android.util.Log
 import android.widget.ArrayAdapter
 import androidx.annotation.StringRes
 import androidx.appcompat.app.AppCompatActivity
@@ -216,7 +217,7 @@ class MainActivity : AppCompatActivity(), MainView, ColorObserver {
     }
 
     private fun showBottomMessage(@StringRes messageId: Int, vararg args: Any) {
-        Snackbar.make(container, getString(messageId, args), Snackbar.LENGTH_SHORT).show()
+        Snackbar.make(container, getString(messageId, args.map { it.toString() }), Snackbar.LENGTH_SHORT).show()
     }
 
     private fun runBtEnabler() {

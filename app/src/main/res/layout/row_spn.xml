@@ -5,7 +5,6 @@
     android:id="@+id/dropdownItem"
     android:layout_width="match_parent"
     android:layout_height="@dimen/dropdown_row_height"
-    android:background="@color/accentPurple"
     android:gravity="center"
     android:textDirection="locale"
     app:fontFamily="monospace"
