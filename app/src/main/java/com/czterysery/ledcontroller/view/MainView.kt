@@ -2,12 +2,15 @@ package com.czterysery.ledcontroller.view
 
 import android.content.DialogInterface
 import androidx.annotation.StringRes
+import com.czterysery.ledcontroller.data.model.Illumination
 
 interface MainView {
 
-    fun updateCurrentColor(receivedColor: Int)
+    fun updateColor(receivedColor: Int)
 
-    fun updateColorBrightnessValue(receivedBrightness: Int)
+    fun updateBrightness(receivedBrightness: Int)
+
+    fun updateIllumination(receivedIllumination: Illumination)
 
     fun showMessage(text: String)
 

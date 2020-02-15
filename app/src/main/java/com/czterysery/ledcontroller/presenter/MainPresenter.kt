@@ -10,7 +10,7 @@ interface MainPresenter : BasePresenter {
 
     fun setBrightness(value: Int)
 
-    fun setAnimation(anim: String)
+    fun setIllumination(position: Int)
 
     fun isConnected(): Boolean
 

@@ -9,4 +9,4 @@
     android:textDirection="locale"
     app:fontFamily="monospace"
     app:rd_style="@style/Material.Drawable.Ripple.Wave"
-    tools:text="@string/animation_title" />
+    tools:text="@string/illumination_title" />

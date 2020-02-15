@@ -5,6 +5,7 @@ import android.bluetooth.BluetoothDevice
 import android.bluetooth.BluetoothSocket
 import android.util.Log
 import com.czterysery.ledcontroller.Constants
+import com.czterysery.ledcontroller.Messages.Companion.END_OF_LINE
 import com.czterysery.ledcontroller.R
 import com.czterysery.ledcontroller.data.model.Connected
 import com.czterysery.ledcontroller.data.model.ConnectionState
@@ -28,6 +29,7 @@ fun InputStream?.isAvailable() = when (this) {
 
 // Defines in millis how often message will be read
 const val READING_INTERVAL = 200L
+const val CONNECTION_TIMEOUT = 5000L
 
 class SocketManagerImpl : SocketManager {
     private val TAG = "SocketManager"
@@ -35,33 +37,33 @@ class SocketManagerImpl : SocketManager {
     private var messageReceiverDisposable: Disposable? = null
 
     override var connectionState: BehaviorSubject<ConnectionState> =
-            BehaviorSubject.createDefault(Disconnected)
+        BehaviorSubject.createDefault(Disconnected)
 
     override val messagePublisher: PublishSubject<String> =
-            PublishSubject.create()
+        PublishSubject.create()
 
     override fun connect(address: String, btAdapter: BluetoothAdapter): Completable =
-            Completable.fromCallable {
-                runConnectionThread(address, btAdapter)
-            }.doOnComplete {
-                observeSerialPort()
-            }.timeout(5, TimeUnit.SECONDS).doOnError { error ->
-                if (error is TimeoutException)
-                    connectionState.onNext(Error(R.string.error_timeout))
-            }
+        Completable.fromCallable {
+            runConnectionThread(address, btAdapter)
+        }.doOnComplete {
+            observeSerialPort()
+        }.timeout(CONNECTION_TIMEOUT, TimeUnit.MILLISECONDS).doOnError { error ->
+            if (error is TimeoutException)
+                connectionState.onNext(Error(R.string.error_timeout))
+        }.retry()
 
     override fun disconnect(): Completable =
-            Completable.fromCallable {
-                closeSources()
-                connectionState.onNext(Disconnected)
-            }.timeout(5, TimeUnit.SECONDS).doOnError {
-                connectionState.onNext(Error(R.string.error_disconnect))
-            }
+        Completable.fromCallable {
+            closeSources()
+            connectionState.onNext(Disconnected)
+        }.timeout(CONNECTION_TIMEOUT, TimeUnit.MILLISECONDS).doOnError {
+            connectionState.onNext(Error(R.string.error_disconnect))
+        }
 
     override fun writeMessage(message: String): Completable =
-            Completable.fromCallable {
-                btSocket?.outputStream?.write(message.toByteArray())
-            }.doOnError { error -> Log.e(TAG, "Couldn't write message to the socket: $error") }
+        Completable.fromCallable {
+            btSocket?.outputStream?.write(message.toByteArray())
+        }.doOnError { error -> Log.e(TAG, "Couldn't write message to the socket: $error") }
 
     private fun runConnectionThread(address: String, btAdapter: BluetoothAdapter) {
         ConnectThread(btAdapter, btAdapter.getRemoteDevice(address)).run()
@@ -76,25 +78,31 @@ class SocketManagerImpl : SocketManager {
         messageReceiverDisposable?.dispose()
         if (connectionState.value is Connected)
             messageReceiverDisposable = streamObserver()
-                    .subscribeOn(Schedulers.io())
-                    .subscribe({ message ->
-                        messagePublisher.onNext(message)
-                        Log.d(TAG, "Received message: $message")
-                    }, { error ->
-                        Log.e(TAG, "Cannot read a message: $error")
-                    })
+                .subscribeOn(Schedulers.io())
+                .subscribe({ message ->
+                    messagePublisher.onNext(message)
+                    if (message.isNotBlank()) Log.d(TAG, "Received message: $message")
+                }, { error ->
+                    Log.e(TAG, "Cannot read a message: $error")
+                })
     }
 
     private fun streamObserver(): Observable<String> =
-            Observable.interval(READING_INTERVAL, TimeUnit.MILLISECONDS)
-                    .map { readStream(btSocket?.inputStream) }
+        Observable.interval(READING_INTERVAL, TimeUnit.MILLISECONDS)
+            .map { readStream(btSocket?.inputStream) }
 
     private fun readStream(stream: InputStream?): String {
         var output = ""
         when (stream) {
             null -> return output
             else -> while (stream.isAvailable()) {
-                stream.let { output += it.read().toChar() }
+                stream.let {
+                    val char = it.read().toChar()
+                    if (char != END_OF_LINE)
+                        output += char
+                    else
+                        return output // On EOL symbol
+                }
             }
         }
         return output
