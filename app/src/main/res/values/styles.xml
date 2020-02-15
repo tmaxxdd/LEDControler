@@ -13,7 +13,6 @@
     <style name="CustomDropdown" parent="Material.Widget.Spinner">
         <item name="rd_style">@style/Material.Drawable.Ripple.Wave</item>
         <item name="spn_arrowSize">0dp</item>
-        <item name="spn_arrowSwitchMode">true</item>
         <item name="spn_dividerColor">?android:attr/textColorPrimary</item>
     </style>
 

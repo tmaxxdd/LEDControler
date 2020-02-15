@@ -15,6 +15,7 @@ import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers
 import io.reactivex.rxjava3.core.Completable
 import io.reactivex.rxjava3.core.Observable
 import io.reactivex.rxjava3.core.Single
+import io.reactivex.rxjava3.disposables.CompositeDisposable
 import io.reactivex.rxjava3.disposables.Disposable
 import io.reactivex.rxjava3.schedulers.Schedulers
 import java.util.concurrent.TimeUnit
@@ -31,18 +32,17 @@ class MainPresenterImpl(
 ) : MainPresenter {
     private val TAG = "MainPresenter"
 
-    private val bluetoothStateListener: (state: BluetoothState) -> Unit =
-        { state: BluetoothState ->
-            onBtStateChanged(state)
-        }
+    private val bluetoothStateListener: (state: BluetoothState) -> Unit = { state: BluetoothState ->
+        onBtStateChanged(state)
+    }
 
-    private val connectionStateListener: (state: ConnectionState) -> Unit =
-        { state ->
-            onConnectionStateChanged(state)
-        }
+    private val connectionStateListener: (state: ConnectionState) -> Unit = { state ->
+        onConnectionStateChanged(state)
+    }
 
     private var btStateDisposable: Disposable? = null
     private var connectionStateDisposable: Disposable? = null
+    private var connectionDisposable: Disposable? = null
     private var messagePublisherDisposable: Disposable? = null
     private var messageWriterDisposable: Disposable? = null
     private var configurationListenerDisposable: Disposable? = null
@@ -129,7 +129,7 @@ class MainPresenterImpl(
             is Connected -> {
                 view?.showConnected(state.device)
                 subscribeMessagePublisher()
-                tryToGetConfiguration()
+//                tryToGetConfiguration()
             }
             Disconnected -> {
                 view?.showDisconnected()
@@ -198,8 +198,9 @@ class MainPresenterImpl(
             btController.getDeviceAddress(deviceName) == null ->
                 socketManager.connectionState.onNext(Error(R.string.error_cannot_find_device))
 
-            else ->
-                socketManager.connect(
+            else -> {
+                connectionDisposable?.dispose()
+                connectionDisposable = socketManager.connect(
                     btController.getDeviceAddress(deviceName) as String,
                     btController.adapter as BluetoothAdapter
                 ).subscribeOn(Schedulers.io())
@@ -210,6 +211,7 @@ class MainPresenterImpl(
                         view?.showLoading(shouldShow = false)
                         Log.e(TAG, "Couldn't connect to device: $error")
                     })
+            }
         }
     }
 
@@ -234,6 +236,7 @@ class MainPresenterImpl(
     }
 
     private fun awaitForResponse() = socketManager.messagePublisher
+        .subscribeOn(Schedulers.io())
         .flatMapCompletable {
             if (messageMapper(it) is Configuration)
                 Completable.complete()

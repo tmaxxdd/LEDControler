@@ -79,10 +79,8 @@ class SocketManagerImpl : SocketManager {
             messageReceiverDisposable = streamObserver()
                 .subscribeOn(Schedulers.io())
                 .subscribe({ message ->
-                    if (message.isNotBlank()) {
-                        messagePublisher.onNext(message)
-                        Log.d(TAG, "Received message: $message")
-                    }
+                    messagePublisher.onNext(message)
+                    if (message.isNotBlank()) Log.d(TAG, "Received message: $message")
                 }, { error ->
                     Log.e(TAG, "Cannot read a message: $error")
                 })

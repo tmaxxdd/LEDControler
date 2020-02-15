@@ -4,6 +4,7 @@ import android.bluetooth.BluetoothAdapter
 import android.content.DialogInterface
 import android.content.Intent
 import android.content.IntentFilter
+import android.content.res.ColorStateList
 import android.graphics.Color
 import android.os.Bundle
 import android.widget.ArrayAdapter
@@ -19,11 +20,16 @@ import com.czterysery.ledcontroller.data.socket.SocketManagerImpl
 import com.czterysery.ledcontroller.presenter.MainPresenter
 import com.czterysery.ledcontroller.presenter.MainPresenterImpl
 import com.google.android.material.snackbar.Snackbar
+import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers
+import io.reactivex.rxjava3.core.Observable
 import kotlinx.android.synthetic.main.activity_main.*
 import kotlinx.android.synthetic.main.row_spn.*
 import org.jetbrains.anko.textColor
 import org.jetbrains.anko.toast
 import top.defaults.colorpicker.ColorObserver
+import java.lang.Exception
+import java.util.*
+import java.util.concurrent.TimeUnit
 
 const val REQUEST_ENABLE_BT = 1
 
@@ -39,6 +45,11 @@ class MainActivity : AppCompatActivity(), MainView, ColorObserver {
 
     private var allowChangeColor = false
     private var previousConnectionState: ConnectionState = Disconnected
+
+    private val illuminationAdapter by lazy {
+        ArrayAdapter<String>(this, R.layout.row_spn, Illumination.values().map { it.name })
+            .apply { setDropDownViewResource(R.layout.row_spn_dropdown) }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -82,7 +93,7 @@ class MainActivity : AppCompatActivity(), MainView, ColorObserver {
     override fun onColor(color: Int, fromUser: Boolean, shouldPropagate: Boolean) {
         if (allowChangeColor) {
             mPresenter.setColor(color)
-            updateColor(color)
+            adjustViewColor(color)
         }
     }
 
@@ -103,18 +114,26 @@ class MainActivity : AppCompatActivity(), MainView, ColorObserver {
     }
 
     override fun updateColor(receivedColor: Int) {
+        allowChangeColor = false
         colorPicker.setInitialColor(receivedColor)
-        dropdownItem?.textColor = receivedColor
-        brightnessSlider.setPrimaryColor(receivedColor)
-        connectAction.setTextColor(receivedColor)
+        allowChangeColor = true
+        adjustViewColor(receivedColor)
     }
 
     override fun updateBrightness(receivedBrightness: Int) {
         brightnessSlider.setValue(receivedBrightness.toFloat(), true)
     }
 
+    // TODO Repair this. View is recreating for unknown reason
     override fun updateIllumination(receivedIllumination: Illumination) {
-        illuminationDropdown.setSelection(receivedIllumination.ordinal)
+        val position = Illumination.values().indexOf(receivedIllumination)
+        illuminationDropdown.setSelection(position)
+    }
+
+    private fun adjustViewColor(color: Int) {
+        dropdownItem.setTextColor(color)
+        brightnessSlider.setPrimaryColor(color)
+        connectAction.setTextColor(color)
     }
 
     private fun changeConnectionStatus() {
@@ -212,12 +231,11 @@ class MainActivity : AppCompatActivity(), MainView, ColorObserver {
     }
 
     private fun initIlluminationDropdown() {
-        val illuminationAdapter = ArrayAdapter<String>(this, R.layout.row_spn, Illumination.values().map { it.name })
-        illuminationAdapter.setDropDownViewResource(R.layout.row_spn_dropdown)
-        illuminationDropdown.adapter = illuminationAdapter
-        illuminationDropdown.setOnItemClickListener { parent, _, position, _ ->
-            mPresenter.setIllumination(position)
-            true
+        with(illuminationDropdown) {
+            adapter = illuminationAdapter
+            setOnItemSelectedListener { _, _, position, _ ->
+                mPresenter.setIllumination(position)
+            }
         }
     }
 }
