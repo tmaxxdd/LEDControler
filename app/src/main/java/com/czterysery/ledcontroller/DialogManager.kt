@@ -5,8 +5,6 @@ import android.content.Context
 import android.content.DialogInterface
 import com.rey.material.app.Dialog
 import com.rey.material.app.SimpleDialog
-import org.jetbrains.anko.AlertBuilder
-import org.jetbrains.anko.AlertDialogBuilder
 
 class DialogManager(private val context: Context) {
 
@@ -60,6 +58,6 @@ class DialogManager(private val context: Context) {
         enableBT.dismissImmediately()
         reconnect.dismissImmediately()
         pairWithDevice.dismissImmediately()
-        selectDevice.takeIf { it?.isShowing ?: false }?.dismiss()
+        selectDevice?.dismiss()
     }
 }
