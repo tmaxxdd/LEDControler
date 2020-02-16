@@ -203,6 +203,8 @@ class MainPresenterImpl(
                     btController.getDeviceAddress(deviceName) as String,
                     btController.adapter as BluetoothAdapter
                 ).subscribeOn(Schedulers.io())
+                    .observeOn(AndroidSchedulers.mainThread())
+                    .doOnSubscribe { view?.showLoading() }
                     .doOnTerminate { view?.showLoading(shouldShow = false) }
                     .subscribe({
                         sendConnectionMessage(connected = true)

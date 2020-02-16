@@ -6,7 +6,6 @@
     android:layout_width="match_parent"
     android:layout_height="@dimen/dropdown_height"
     android:gravity="center"
-    android:textDirection="locale"
     app:fontFamily="monospace"
     app:rd_style="@style/Material.Drawable.Ripple.Wave"
     tools:text="@string/illumination_title" />

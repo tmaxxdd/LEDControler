@@ -98,23 +98,8 @@ class MainActivity : AppCompatActivity(), MainView, ColorObserver {
         }
     }
 
-    private fun updateConnectionViewState(isConnected: Boolean) {
-        if (isConnected) {
-            colorPicker.alpha = 1f
-            illuminationDropdown.isEnabled = true
-            brightnessSlider.isEnabled = true
-            allowChangeColor = true
-            connectAction.text = getString(R.string.disconnect)
-        } else {
-            colorPicker.alpha = 0.5f
-            illuminationDropdown.isEnabled = false
-            brightnessSlider.isEnabled = false
-            allowChangeColor = false
-            connectAction.text = getString(R.string.connect)
-        }
-    }
-
     override fun updateColor(receivedColor: Int) {
+        // Don't execute code in onColor method
         allowChangeColor = false
         colorPicker.setInitialColor(receivedColor)
         allowChangeColor = true
@@ -127,20 +112,6 @@ class MainActivity : AppCompatActivity(), MainView, ColorObserver {
 
     override fun updateIllumination(receivedIllumination: Illumination) {
         illuminationDropdown.setSelection(receivedIllumination.ordinal)
-    }
-
-    private fun adjustViewColor(color: Int) {
-        dropdownItem.setTextColor(color)
-        brightnessSlider.setPrimaryColor(color)
-        connectAction.setTextColor(color)
-    }
-
-    private fun changeConnectionStatus() {
-        if (!mPresenter.isConnected()) {
-            mPresenter.connect()
-        } else {
-            mPresenter.disconnect()
-        }
     }
 
     override fun showMessage(text: String) {
@@ -204,10 +175,42 @@ class MainActivity : AppCompatActivity(), MainView, ColorObserver {
             .show()
     }
 
+    private fun changeConnectionStatus() {
+        if (!mPresenter.isConnected()) {
+            mPresenter.connect()
+        } else {
+            mPresenter.disconnect()
+        }
+    }
+
+    private fun updateConnectionViewState(isConnected: Boolean) {
+        if (isConnected) {
+            colorPicker.alpha = 1f
+            illuminationDropdown.isEnabled = true
+            brightnessSlider.isEnabled = true
+            allowChangeColor = true
+            connectAction.text = getString(R.string.disconnect)
+        } else {
+            colorPicker.alpha = 0.5f
+            illuminationDropdown.isEnabled = false
+            brightnessSlider.isEnabled = false
+            allowChangeColor = false
+            connectAction.text = getString(R.string.connect)
+        }
+    }
+
+    private fun adjustViewColor(color: Int) {
+        dropdownItem.setTextColor(color)
+        brightnessSlider.setPrimaryColor(color)
+        connectAction.setTextColor(color)
+    }
+
     private fun showReconnect() {
         with(dialogManager.reconnect) {
             positiveActionClickListener {
-                if (mPresenter.isBtEnabled()) mPresenter.connect()
+                if (mPresenter.isBtEnabled()) {
+                    mPresenter.connect()
+                }
                 dismiss()
             }
             show()
@@ -215,7 +218,10 @@ class MainActivity : AppCompatActivity(), MainView, ColorObserver {
     }
 
     private fun showBottomMessage(@StringRes messageId: Int, vararg args: Any) {
-        Snackbar.make(container, getString(messageId, args.map { it.toString() }), Snackbar.LENGTH_SHORT).show()
+        Snackbar.make(container,
+            getString(messageId, args.map { it.toString() }.takeIf { it.isNotEmpty() }?.first()),
+            Snackbar.LENGTH_SHORT
+        ).show()
     }
 
     private fun runBtEnabler() {
