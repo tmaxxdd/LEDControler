@@ -13,9 +13,6 @@ import com.czterysery.ledcontroller.data.socket.SocketManager
 import com.czterysery.ledcontroller.view.MainView
 import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers
 import io.reactivex.rxjava3.core.Completable
-import io.reactivex.rxjava3.core.Observable
-import io.reactivex.rxjava3.core.Single
-import io.reactivex.rxjava3.disposables.CompositeDisposable
 import io.reactivex.rxjava3.disposables.Disposable
 import io.reactivex.rxjava3.schedulers.Schedulers
 import java.util.concurrent.TimeUnit
@@ -71,7 +68,10 @@ class MainPresenterImpl(
         sendConnectionMessage(connected = false)
         socketManager.disconnect().subscribe(
             IGNORE_SUCCESS, { error ->
-            Log.e(TAG, "Couldn't close the socket: $error")
+            if (error is TimeoutException)
+                socketManager.connectionState.onNext(Error(R.string.error_disconnect))
+            else
+                Log.e(TAG, "Couldn't close the socket: $error")
         })
     }
 
@@ -99,7 +99,13 @@ class MainPresenterImpl(
             .observeOn(AndroidSchedulers.mainThread())
             .subscribe(
                 { state -> listener(state) },
-                { error -> Log.e(TAG, "Error during observing connection state: $error") }
+                { error ->
+                    // TODO Create one class with error messages
+                    if (error is TimeoutException)
+                        socketManager.connectionState.onNext(Error(R.string.error_timeout))
+                    else
+                        Log.e(TAG, "Error during observing connection state: $error")
+                }
             )
     }
 

@@ -6,11 +6,9 @@ import android.bluetooth.BluetoothSocket
 import android.util.Log
 import com.czterysery.ledcontroller.Constants
 import com.czterysery.ledcontroller.Messages.Companion.END_OF_LINE
-import com.czterysery.ledcontroller.R
 import com.czterysery.ledcontroller.data.model.Connected
 import com.czterysery.ledcontroller.data.model.ConnectionState
 import com.czterysery.ledcontroller.data.model.Disconnected
-import com.czterysery.ledcontroller.data.model.Error
 import io.reactivex.rxjava3.core.Completable
 import io.reactivex.rxjava3.core.Observable
 import io.reactivex.rxjava3.disposables.Disposable
@@ -20,7 +18,6 @@ import io.reactivex.rxjava3.subjects.PublishSubject
 import java.io.IOException
 import java.io.InputStream
 import java.util.concurrent.TimeUnit
-import java.util.concurrent.TimeoutException
 
 fun InputStream?.isAvailable() = when (this) {
     null -> false
@@ -31,7 +28,7 @@ fun InputStream?.isAvailable() = when (this) {
 const val READING_INTERVAL = 200L
 const val CONNECTION_TIMEOUT = 5000L
 
-class SocketManagerImpl : SocketManager {
+class BluetoothSocketManager : SocketManager {
     private val TAG = "SocketManager"
     private var btSocket: BluetoothSocket? = null
     private var messageReceiverDisposable: Disposable? = null
@@ -47,31 +44,27 @@ class SocketManagerImpl : SocketManager {
             runConnectionThread(address, btAdapter)
         }.doOnComplete {
             observeSerialPort()
-        }.timeout(CONNECTION_TIMEOUT, TimeUnit.MILLISECONDS).doOnError { error ->
-            if (error is TimeoutException)
-                connectionState.onNext(Error(R.string.error_timeout))
-        }.retry()
+        }.timeout(CONNECTION_TIMEOUT, TimeUnit.MILLISECONDS).retry()
 
     override fun disconnect(): Completable =
         Completable.fromCallable {
             closeSources()
             connectionState.onNext(Disconnected)
-        }.timeout(CONNECTION_TIMEOUT, TimeUnit.MILLISECONDS).doOnError {
-            connectionState.onNext(Error(R.string.error_disconnect))
         }
 
     override fun writeMessage(message: String): Completable =
         Completable.fromCallable {
             btSocket?.outputStream?.write(message.toByteArray())
-        }.doOnError { error -> Log.e(TAG, "Couldn't write message to the socket: $error") }
+                ?: throw NullPointerException()
+        }
 
     private fun runConnectionThread(address: String, btAdapter: BluetoothAdapter) {
         ConnectThread(btAdapter, btAdapter.getRemoteDevice(address)).run()
     }
 
     private fun closeSources() {
-        btSocket?.close()
         messageReceiverDisposable?.dispose()
+        btSocket?.close()
     }
 
     private fun observeSerialPort() {
@@ -81,7 +74,8 @@ class SocketManagerImpl : SocketManager {
                 .subscribeOn(Schedulers.io())
                 .subscribe({ message ->
                     messagePublisher.onNext(message)
-                    if (message.isNotBlank()) Log.d(TAG, "Received message: $message")
+                    if (message.isNotBlank())
+                        Log.d(TAG, "Received message: $message")
                 }, { error ->
                     Log.e(TAG, "Cannot read a message: $error")
                 })
@@ -125,8 +119,9 @@ class SocketManagerImpl : SocketManager {
                 try {
                     socket.connect()
                 } catch (e: Exception) {
-                    connectionState.onNext(Error(R.string.error_timeout))
+                    Log.e(TAG, "Couldn't connect with device: $e")
                     cancel()
+                    throw Exception()
                 }
 
                 if (socket.isConnected) {
@@ -142,7 +137,7 @@ class SocketManagerImpl : SocketManager {
         }
 
         // Closes the client socket and causes the thread to finish.
-        fun cancel() {
+        private fun cancel() {
             try {
                 mmSocket?.close()
             } catch (e: IOException) {
@@ -150,7 +145,7 @@ class SocketManagerImpl : SocketManager {
             }
         }
 
-        fun manageMyConnectedSocket(socket: BluetoothSocket) {
+        private fun manageMyConnectedSocket(socket: BluetoothSocket) {
             //Give the SocketManager access to the active socket
             btSocket = socket
         }
