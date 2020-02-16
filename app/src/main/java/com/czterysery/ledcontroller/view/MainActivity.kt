@@ -215,7 +215,10 @@ class MainActivity : AppCompatActivity(), MainView, ColorObserver {
     }
 
     private fun showBottomMessage(@StringRes messageId: Int, vararg args: Any) {
-        Snackbar.make(container, getString(messageId, args.map { it.toString() }), Snackbar.LENGTH_SHORT).show()
+        Snackbar.make(container,
+            getString(messageId, args.map { it.toString() }.takeIf { it.isNotEmpty() }?.first()),
+            Snackbar.LENGTH_SHORT
+        ).show()
     }
 
     private fun runBtEnabler() {
