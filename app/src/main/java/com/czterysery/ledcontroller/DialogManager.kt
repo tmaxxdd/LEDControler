@@ -46,7 +46,7 @@ class DialogManager(private val context: Context) {
         selectDevice?.dismiss()
         selectDevice = AlertDialog.Builder(context)
             .setTitle(R.string.available_devices_title)
-            .setCancelable(true)
+            .setCancelable(false)
             .setItems(devices) { dialog, selected: Int ->
                 selectedDevice(dialog, devices[selected])
                 dialog.dismiss()
