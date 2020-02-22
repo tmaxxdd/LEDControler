@@ -15,6 +15,7 @@ import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers
 import io.reactivex.rxjava3.core.Completable
 import io.reactivex.rxjava3.disposables.Disposable
 import io.reactivex.rxjava3.schedulers.Schedulers
+import org.jetbrains.anko.Android
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.TimeoutException
 
@@ -85,7 +86,7 @@ class MainPresenterImpl(
     }
 
     override fun setIllumination(position: Int) {
-        writeMessage(Messages.SET_ILLUMINATION + Illumination.values()[position].name)
+        writeMessage(Messages.SET_ILLUMINATION + position)
     }
 
     override fun isConnected() = socketManager.connectionState.value is Connected
@@ -204,6 +205,7 @@ class MainPresenterImpl(
                 socketManager.connectionState.onNext(Error(R.string.error_cannot_find_device))
 
             else -> {
+                // TODO Fix sending connected message (some delay may help)
                 connectionDisposable?.dispose()
                 connectionDisposable = socketManager.connect(
                     btController.getDeviceAddress(deviceName) as String,
@@ -212,8 +214,8 @@ class MainPresenterImpl(
                     .observeOn(AndroidSchedulers.mainThread())
                     .doOnSubscribe { view?.showLoading() }
                     .doOnTerminate { view?.showLoading(shouldShow = false) }
+                    .doOnComplete { sendConnectionMessage(connected = true) }
                     .subscribe({
-                        sendConnectionMessage(connected = true)
                         tryToGetConfiguration()
                     }, { error ->
                         Log.e(TAG, "Couldn't connect to device: $error")
@@ -228,8 +230,10 @@ class MainPresenterImpl(
         configurationListenerDisposable = Completable.fromCallable {
             writeMessage(Messages.GET_CONFIGURATION)
         }.andThen(awaitForResponse())
+            .subscribeOn(Schedulers.io())
+            .observeOn(AndroidSchedulers.mainThread())
             .doOnTerminate { view?.showLoading(false) }
-            .retry()
+            .retry(5)
             .subscribe(
                 IGNORE_SUCCESS,
                 { error ->
