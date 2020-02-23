@@ -3,30 +3,44 @@ package com.czterysery.ledcontroller.presenter
 import android.bluetooth.BluetoothAdapter
 import android.util.Log
 import com.czterysery.ledcontroller.BluetoothStateBroadcastReceiver
+import com.czterysery.ledcontroller.ErrorInterpreter
 import com.czterysery.ledcontroller.Messages
 import com.czterysery.ledcontroller.Messages.Companion.END_OF_LINE
-import com.czterysery.ledcontroller.R
 import com.czterysery.ledcontroller.data.bluetooth.BluetoothController
 import com.czterysery.ledcontroller.data.mapper.MessageMapper
-import com.czterysery.ledcontroller.data.model.*
+import com.czterysery.ledcontroller.data.model.BluetoothState
+import com.czterysery.ledcontroller.data.model.Configuration
+import com.czterysery.ledcontroller.data.model.Connected
+import com.czterysery.ledcontroller.data.model.ConnectionState
+import com.czterysery.ledcontroller.data.model.Disabled
+import com.czterysery.ledcontroller.data.model.Disconnected
+import com.czterysery.ledcontroller.data.model.Enabled
+import com.czterysery.ledcontroller.data.model.Error
+import com.czterysery.ledcontroller.data.model.InProgress
+import com.czterysery.ledcontroller.data.model.Message
+import com.czterysery.ledcontroller.data.model.None
+import com.czterysery.ledcontroller.data.model.NotSupported
+import com.czterysery.ledcontroller.data.model.Unknown
 import com.czterysery.ledcontroller.data.socket.SocketManager
+import com.czterysery.ledcontroller.exceptions.BluetoothNotSupportedException
+import com.czterysery.ledcontroller.exceptions.DeviceNotFoundException
 import com.czterysery.ledcontroller.view.MainView
 import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers
 import io.reactivex.rxjava3.core.Completable
 import io.reactivex.rxjava3.disposables.Disposable
 import io.reactivex.rxjava3.schedulers.Schedulers
-import org.jetbrains.anko.Android
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.TimeoutException
 
-const val RESPONSE_TIMEOUT = 2L // sec
-val IGNORE_SUCCESS = {}
+private const val RESPONSE_TIMEOUT = 2L // sec
+private val IGNORE_SUCCESS = {}
 
 class MainPresenterImpl(
     private val bluetoothStateBroadcastReceiver: BluetoothStateBroadcastReceiver,
     private val btController: BluetoothController,
     private val socketManager: SocketManager,
-    private val messageMapper: MessageMapper
+    private val messageMapper: MessageMapper,
+    private val errorInterpreter: ErrorInterpreter
 ) : MainPresenter {
     private val TAG = "MainPresenter"
 
@@ -41,6 +55,7 @@ class MainPresenterImpl(
     private var btStateDisposable: Disposable? = null
     private var connectionStateDisposable: Disposable? = null
     private var connectionDisposable: Disposable? = null
+    private var disconnectionDisposable: Disposable? = null
     private var messagePublisherDisposable: Disposable? = null
     private var messageWriterDisposable: Disposable? = null
     private var configurationListenerDisposable: Disposable? = null
@@ -67,13 +82,13 @@ class MainPresenterImpl(
 
     override fun disconnect() {
         sendConnectionMessage(connected = false)
-        socketManager.disconnect().subscribe(
-            IGNORE_SUCCESS, { error ->
-            if (error is TimeoutException)
-                socketManager.connectionState.onNext(Error(R.string.error_disconnect))
-            else
-                Log.e(TAG, "Couldn't close the socket: $error")
-        })
+        disconnectionDisposable?.dispose()
+        disconnectionDisposable = socketManager.disconnect()
+            .subscribeOn(Schedulers.io())
+            .subscribe(
+                IGNORE_SUCCESS, // Wait for connection callback
+                { error -> socketManager.connectionState.onNext(Error(errorInterpreter(error))) }
+            )
     }
 
     override fun setColor(color: Int) {
@@ -86,7 +101,8 @@ class MainPresenterImpl(
     }
 
     override fun setIllumination(position: Int) {
-        writeMessage(Messages.SET_ILLUMINATION + position)
+        // Sometimes single message may not be delivered, so repeat it
+        writeMessage(message = Messages.SET_ILLUMINATION + position, times = 5)
     }
 
     override fun isConnected() = socketManager.connectionState.value is Connected
@@ -100,13 +116,7 @@ class MainPresenterImpl(
             .observeOn(AndroidSchedulers.mainThread())
             .subscribe(
                 { state -> listener(state) },
-                { error ->
-                    // TODO Create one class with error messages
-                    if (error is TimeoutException)
-                        socketManager.connectionState.onNext(Error(R.string.error_timeout))
-                    else
-                        Log.e(TAG, "Error during observing connection state: $error")
-                }
+                { error -> socketManager.connectionState.onNext(Error(errorInterpreter(error))) }
             )
     }
 
@@ -128,21 +138,25 @@ class MainPresenterImpl(
             .observeOn(AndroidSchedulers.mainThread())
             .subscribe(
                 { message -> parseMessage(message) },
-                { view?.showError(R.string.error_receiving_message) }
+                { error -> socketManager.connectionState.onNext(Error(errorInterpreter(error))) }
             )
     }
 
     private fun onConnectionStateChanged(state: ConnectionState) {
+        if (state !is InProgress)
+            view?.showLoading(shouldShow = false)
+
         when (state) {
             is Connected -> {
                 view?.showConnected(state.device)
+                sendConnectionMessage(connected = true)
                 subscribeMessagePublisher()
                 tryToGetConfiguration()
             }
             Disconnected -> view?.showDisconnected()
             is Error -> view?.showError(state.messageId)
+            is InProgress -> view?.showLoading()
         }
-        view?.showLoading(shouldShow = false)
     }
 
     private fun onBtStateChanged(state: BluetoothState) {
@@ -158,12 +172,14 @@ class MainPresenterImpl(
         }
     }
 
-    private fun writeMessage(message: String) {
+    private fun writeMessage(message: String, times: Long = 1) {
         messageWriterDisposable?.dispose()
         messageWriterDisposable = socketManager.writeMessage(message + END_OF_LINE)
-            .subscribe(IGNORE_SUCCESS, { error ->
-                Log.e(TAG, "Couldn't write $message, $error")
-            })
+            .repeat(times)
+            .subscribe(
+                IGNORE_SUCCESS,
+                { error -> Log.e(TAG, "Couldn't write: $message, error = $error") }
+            )
     }
 
     private fun sendConnectionMessage(connected: Boolean) {
@@ -184,7 +200,6 @@ class MainPresenterImpl(
         view?.let {
             val devices = btController.getDevices().keys.toTypedArray()
             if (devices.isNotEmpty()) {
-                it.showLoading()
                 it.showDevicesList(devices) { dialog, deviceName ->
                     // On selected device
                     dialog.dismiss()
@@ -199,27 +214,25 @@ class MainPresenterImpl(
     private fun tryToConnectWithDevice(deviceName: String) {
         when {
             btController.adapter == null ->
-                socketManager.connectionState.onNext(Error(R.string.error_bt_not_available))
+                socketManager.connectionState.onNext(
+                    Error(errorInterpreter(BluetoothNotSupportedException()))
+                )
 
             btController.getDeviceAddress(deviceName) == null ->
-                socketManager.connectionState.onNext(Error(R.string.error_cannot_find_device))
+                socketManager.connectionState.onNext(
+                    Error(errorInterpreter(DeviceNotFoundException()))
+                )
 
             else -> {
-                // TODO Fix sending connected message (some delay may help)
                 connectionDisposable?.dispose()
                 connectionDisposable = socketManager.connect(
                     btController.getDeviceAddress(deviceName) as String,
                     btController.adapter as BluetoothAdapter
                 ).subscribeOn(Schedulers.io())
-                    .observeOn(AndroidSchedulers.mainThread())
-                    .doOnSubscribe { view?.showLoading() }
-                    .doOnTerminate { view?.showLoading(shouldShow = false) }
-                    .doOnComplete { sendConnectionMessage(connected = true) }
-                    .subscribe({
-                        tryToGetConfiguration()
-                    }, { error ->
-                        Log.e(TAG, "Couldn't connect to device: $error")
-                    })
+                    .subscribe(
+                        IGNORE_SUCCESS,
+                        { error -> socketManager.connectionState.onNext(Error(errorInterpreter(error))) }
+                    )
             }
         }
     }
@@ -229,9 +242,8 @@ class MainPresenterImpl(
         configurationListenerDisposable?.dispose()
         configurationListenerDisposable = Completable.fromCallable {
             writeMessage(Messages.GET_CONFIGURATION)
-        }.andThen(awaitForResponse())
+        }.andThen(awaitForResponse<Configuration>())
             .subscribeOn(Schedulers.io())
-            .observeOn(AndroidSchedulers.mainThread())
             .doOnTerminate { view?.showLoading(false) }
             .retry(5)
             .subscribe(
@@ -246,14 +258,16 @@ class MainPresenterImpl(
             )
     }
 
-    private fun awaitForResponse() = socketManager.messagePublisher
-        .subscribeOn(Schedulers.io())
-        .flatMapCompletable {
-            if (messageMapper(it) is Configuration)
-                Completable.complete()
-            else
-                Completable.never()
-        }.timeout(RESPONSE_TIMEOUT, TimeUnit.MILLISECONDS)
+    private inline fun <reified T> awaitForResponse() =
+        socketManager.messagePublisher
+            .subscribeOn(Schedulers.io())
+            .flatMapCompletable {
+                if (messageMapper(it) is T) {
+                    Completable.complete()
+                } else {
+                    Completable.never()
+                }
+            }.timeout(RESPONSE_TIMEOUT, TimeUnit.MILLISECONDS)
 
     private fun parseMessage(messageValue: String) {
         when (val message: Message = messageMapper(messageValue)) {
@@ -262,8 +276,7 @@ class MainPresenterImpl(
                 view?.showLoading(false)
                 adjustViewToConfiguration(message)
             }
-            is Unknown -> {
-            }
+            is Unknown -> IGNORE_SUCCESS
         }
     }
 

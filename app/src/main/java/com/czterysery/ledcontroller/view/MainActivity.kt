@@ -11,6 +11,7 @@ import androidx.annotation.StringRes
 import androidx.appcompat.app.AppCompatActivity
 import com.czterysery.ledcontroller.BluetoothStateBroadcastReceiver
 import com.czterysery.ledcontroller.DialogManager
+import com.czterysery.ledcontroller.ErrorInterpreter
 import com.czterysery.ledcontroller.R
 import com.czterysery.ledcontroller.data.bluetooth.BluetoothController
 import com.czterysery.ledcontroller.data.mapper.MessageMapper
@@ -36,7 +37,8 @@ class MainActivity : AppCompatActivity(), MainView, ColorObserver {
         btStateReceiver,
         BluetoothController(),
         BluetoothSocketManager(),
-        MessageMapper()
+        MessageMapper(),
+        ErrorInterpreter()
     )
 
     private var allowChangeColor = false

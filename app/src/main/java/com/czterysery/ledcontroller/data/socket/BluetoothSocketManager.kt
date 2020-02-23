@@ -9,6 +9,7 @@ import com.czterysery.ledcontroller.Messages.Companion.END_OF_LINE
 import com.czterysery.ledcontroller.data.model.Connected
 import com.czterysery.ledcontroller.data.model.ConnectionState
 import com.czterysery.ledcontroller.data.model.Disconnected
+import com.czterysery.ledcontroller.data.model.InProgress
 import io.reactivex.rxjava3.core.Completable
 import io.reactivex.rxjava3.core.Observable
 import io.reactivex.rxjava3.disposables.Disposable
@@ -26,7 +27,6 @@ fun InputStream?.isAvailable() = when (this) {
 
 // Defines in millis how often message will be read
 const val READING_INTERVAL = 200L
-const val CONNECTION_TIMEOUT = 5000L
 
 class BluetoothSocketManager : SocketManager {
     private val TAG = "SocketManager"
@@ -42,20 +42,24 @@ class BluetoothSocketManager : SocketManager {
     override fun connect(address: String, btAdapter: BluetoothAdapter): Completable =
         Completable.fromCallable {
             runConnectionThread(address, btAdapter)
+        }.doOnSubscribe {
+            connectionState.onNext(InProgress)
         }.doOnComplete {
             observeSerialPort()
-        }.timeout(CONNECTION_TIMEOUT, TimeUnit.MILLISECONDS).retry()
+        }
 
     override fun disconnect(): Completable =
         Completable.fromCallable {
             closeSources()
+        }.doOnSubscribe {
+            connectionState.onNext(InProgress)
+        }.doOnComplete {
             connectionState.onNext(Disconnected)
         }
 
     override fun writeMessage(message: String): Completable =
         Completable.fromCallable {
             btSocket?.outputStream?.write(message.toByteArray())
-                ?: throw NullPointerException()
         }
 
     private fun runConnectionThread(address: String, btAdapter: BluetoothAdapter) {
@@ -118,10 +122,10 @@ class BluetoothSocketManager : SocketManager {
 
                 try {
                     socket.connect()
-                } catch (e: Exception) {
-                    Log.e(TAG, "Couldn't connect with device: $e")
+                } catch (exception: Exception) {
+                    Log.e(TAG, "Couldn't connect with device: $exception")
                     cancel()
-                    throw Exception()
+                    throw exception
                 }
 
                 if (socket.isConnected) {
