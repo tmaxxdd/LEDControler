@@ -5,7 +5,6 @@ import android.bluetooth.BluetoothDevice
 import java.util.HashMap
 
 class BluetoothController {
-
     val adapter: BluetoothAdapter?
         get() = BluetoothAdapter.getDefaultAdapter()
 

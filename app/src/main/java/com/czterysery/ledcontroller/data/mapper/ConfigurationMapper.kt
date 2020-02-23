@@ -8,10 +8,10 @@ import com.czterysery.ledcontroller.exceptions.InvalidColorValueException
 import com.czterysery.ledcontroller.exceptions.InvalidConfigurationMessageException
 import com.czterysery.ledcontroller.exceptions.InvalidIlluminationValueException
 
-const val colorLength = 7 // #2233ff
-const val colorPrefix = "clr:"
-const val brightnessPrefix = "brig:"
-const val illuminationPrefix = "illu:"
+private const val colorLength = 7 // #2233ff
+private const val colorPrefix = "clr:"
+private const val brightnessPrefix = "brig:"
+private const val illuminationPrefix = "illu:"
 private val brightnessRange = 0..255
 private val illuminationTypeRange = Illumination.values().indices
 
