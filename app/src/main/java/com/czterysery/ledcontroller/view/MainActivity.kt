@@ -23,8 +23,12 @@ import com.czterysery.ledcontroller.data.socket.BluetoothSocketManager
 import com.czterysery.ledcontroller.presenter.MainPresenter
 import com.czterysery.ledcontroller.presenter.MainPresenterImpl
 import com.google.android.material.snackbar.Snackbar
-import kotlinx.android.synthetic.main.activity_main.*
-import kotlinx.android.synthetic.main.row_spn.*
+import kotlinx.android.synthetic.main.activity_main.brightnessSlider
+import kotlinx.android.synthetic.main.activity_main.colorPicker
+import kotlinx.android.synthetic.main.activity_main.connectAction
+import kotlinx.android.synthetic.main.activity_main.container
+import kotlinx.android.synthetic.main.activity_main.illuminationDropdown
+import kotlinx.android.synthetic.main.row_spn.dropdownItem
 import org.jetbrains.anko.toast
 import top.defaults.colorpicker.ColorObserver
 
@@ -119,12 +123,11 @@ class MainActivity : AppCompatActivity(), MainView, ColorObserver {
         if (shouldShow)
             dialogManager.loading.show()
         else
-            dialogManager.loading.dismiss()
+            dialogManager.loading.hide()
     }
 
     override fun showDevicesList(devices: Array<String>, selectedDevice: (DialogInterface, String) -> Unit) {
-        dialogManager.deviceSelection(devices, selectedDevice)
-            .show()
+        dialogManager.deviceSelection(devices, selectedDevice).show()
     }
 
     override fun showPairWithDevice() {
