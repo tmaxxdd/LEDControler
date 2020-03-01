@@ -5,11 +5,13 @@ import android.content.DialogInterface
 import android.content.Intent
 import android.content.IntentFilter
 import android.graphics.Color
+import android.net.Uri
 import android.os.Bundle
 import android.widget.ArrayAdapter
 import androidx.annotation.StringRes
 import androidx.appcompat.app.AppCompatActivity
 import com.czterysery.ledcontroller.BluetoothStateBroadcastReceiver
+import com.czterysery.ledcontroller.Constants.Companion.REPO_URL
 import com.czterysery.ledcontroller.DialogManager
 import com.czterysery.ledcontroller.ErrorInterpreter
 import com.czterysery.ledcontroller.R
@@ -27,6 +29,7 @@ import kotlinx.android.synthetic.main.activity_main.brightnessSlider
 import kotlinx.android.synthetic.main.activity_main.colorPicker
 import kotlinx.android.synthetic.main.activity_main.connectAction
 import kotlinx.android.synthetic.main.activity_main.container
+import kotlinx.android.synthetic.main.activity_main.githubAction
 import kotlinx.android.synthetic.main.activity_main.illuminationDropdown
 import kotlinx.android.synthetic.main.row_spn.dropdownItem
 import org.jetbrains.anko.toast
@@ -53,6 +56,11 @@ class MainActivity : AppCompatActivity(), MainView, ColorObserver {
             .apply { setDropDownViewResource(R.layout.row_spn_dropdown) }
     }
 
+    private val githubIntent = Intent().apply {
+        action = Intent.ACTION_VIEW
+        data = Uri.parse(REPO_URL)
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
@@ -68,6 +76,10 @@ class MainActivity : AppCompatActivity(), MainView, ColorObserver {
 
         connectAction.setOnClickListener {
             changeConnectionStatus()
+        }
+
+        githubAction.setOnClickListener {
+            startActivity(githubIntent)
         }
 
         registerReceiver(btStateReceiver, IntentFilter(BluetoothAdapter.ACTION_STATE_CHANGED))
