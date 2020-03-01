@@ -12,16 +12,38 @@
         android:layout_height="?attr/actionBarSize"
         android:background="?android:attr/colorForegroundInverse">
 
-        <TextView
+        <androidx.constraintlayout.widget.ConstraintLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginEnd="@dimen/vertical_spacing"
-            android:layout_marginRight="@dimen/vertical_spacing"
-            android:text="@string/app_name"
-            android:textAlignment="center"
-            android:textSize="@dimen/toolbar_font_size"
-            android:textStyle="bold"
-            app:fontFamily="serif-monospace" />
+            android:layout_marginRight="@dimen/vertical_spacing">
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:text="@string/app_name"
+                android:textAlignment="center"
+                android:textSize="@dimen/toolbar_font_size"
+                android:textStyle="bold"
+                app:fontFamily="serif-monospace"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent" />
+
+            <ImageView
+                android:id="@+id/githubAction"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:padding="12dp"
+                android:src="@drawable/ic_github"
+                android:background="?attr/selectableItemBackground"
+                android:clickable="true"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintTop_toTopOf="parent"
+                android:focusable="true" />
+
+        </androidx.constraintlayout.widget.ConstraintLayout>
 
     </androidx.appcompat.widget.Toolbar>
 
