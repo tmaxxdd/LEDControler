@@ -53,7 +53,7 @@ class BluetoothSocketManager : SocketManager {
             closeSources()
         }.doOnSubscribe {
             connectionState.onNext(InProgress)
-        }.doOnComplete {
+        }.doFinally {
             connectionState.onNext(Disconnected)
         }
 

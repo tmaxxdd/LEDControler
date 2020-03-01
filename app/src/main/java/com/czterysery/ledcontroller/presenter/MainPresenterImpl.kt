@@ -84,9 +84,9 @@ class MainPresenterImpl(
         sendConnectionMessage(connected = false)
         disconnectionDisposable?.dispose()
         disconnectionDisposable = socketManager.disconnect()
-            .subscribeOn(Schedulers.io())
+            .subscribeOn(AndroidSchedulers.mainThread())
             .subscribe(
-                IGNORE_SUCCESS, // Wait for connection callback
+                IGNORE_SUCCESS,
                 { error -> socketManager.connectionState.onNext(Error(errorInterpreter(error))) }
             )
     }
