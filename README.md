@@ -1,10 +1,12 @@
 ![Project logo](led_controller_promo.png)
 
-#About
+# About
 This repo contains source code for an app which controls LED strips via Bluetooth.
 
 Main project repository:
 https://github.com/tmaxxdd/Arduino-LED-Controller
+
+# Download
 
 Download it from Play Store
 
