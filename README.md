@@ -6,5 +6,6 @@ This repo contains source code for an app which controls LED strips via Bluetoot
 Main project repository:
 https://github.com/tmaxxdd/Arduino-LED-Controller
 
-Download it from Play Store \n
+Download it from Play Store
+
 [<img src="play_store_button.svg" width="300" height="100">](http://google.com.au/)
