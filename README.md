@@ -7,3 +7,7 @@ Main project repository:
 https://github.com/tmaxxdd/Arduino-LED-Controller
 
 Download it from Play Store
+
+<a href="https://play.google.com/store/apps/details?id=com.czterysery.ledcontroller"> <img src="play_store_button.png"></a>
+
+![Download it from Play Store](play_store_button.png)
