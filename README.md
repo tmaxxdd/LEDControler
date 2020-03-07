@@ -10,4 +10,4 @@ https://github.com/tmaxxdd/Arduino-LED-Controller
 
 Download it from Play Store
 
-[<img src="play_store_button.svg" width="300" height="100">](http://google.com.au/)
+[<img src="play_store_button.svg" width="300" height="100">](https://play.google.com/store/apps/details?id=com.czterysery.ledcontroller)
